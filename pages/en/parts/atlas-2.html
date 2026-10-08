@@ -1,0 +1,425 @@
+<script>
+window.makePie = function (items, c1, c2) {
+  var NS = "http://www.w3.org/2000/svg", tot = items.reduce(function (a, b) { return a + b.v; }, 0);
+  var wrap = document.createElement("div"); wrap.className = "pie";
+  var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 150 150"); svg.setAttribute("role", "img");
+  var R = 72, r = 44, cx = 75, cy = 75, a0 = -Math.PI / 2, lab = [];
+  function pt(a, rad) { return (cx + rad * Math.cos(a)).toFixed(2) + " " + (cy + rad * Math.sin(a)).toFixed(2); }
+  var ul = document.createElement("ul");
+  items.forEach(function (it) {
+    var f = it.v / tot, a1 = a0 + f * Math.PI * 2, big = f > 0.5 ? 1 : 0;
+    if (f >= 0.9999) a1 = a0 + Math.PI * 2 - 0.0001;
+    var path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M " + pt(a0, R) + " A " + R + " " + R + " 0 " + big + " 1 " + pt(a1, R) + " L " + pt(a1, r) + " A " + r + " " + r + " 0 " + big + " 0 " + pt(a0, r) + " Z");
+    path.style.fill = it.c;
+    var pc = Math.round(f * 100), pcs = pc < 1 ? "<1 %" : pc + " %";
+    var t = document.createElementNS(NS, "title"); t.textContent = it.l + ": " + it.s + " (" + pcs + ")"; path.appendChild(t);
+    svg.appendChild(path); a0 = a1;
+    var li = document.createElement("li"), i = document.createElement("i"), n = document.createElement("span"), v = document.createElement("span");
+    i.style.background = it.c; n.textContent = it.l; v.className = "v"; v.textContent = it.s + " · " + pcs;
+    li.title = it.s; li.appendChild(i); li.appendChild(n); li.appendChild(v); ul.appendChild(li);
+    lab.push(it.l + " " + pcs);
+  });
+  [[c1, 76, "ctr1"], [c2, 93, "ctr2"]].forEach(function (x) {
+    if (!x[0]) return; var tx = document.createElementNS(NS, "text");
+    tx.setAttribute("x", 75); tx.setAttribute("y", x[1]); tx.setAttribute("text-anchor", "middle"); tx.setAttribute("class", x[2]); tx.textContent = x[0]; svg.appendChild(tx);
+  });
+  svg.setAttribute("aria-label", lab.join(", "));
+  wrap.appendChild(svg); wrap.appendChild(ul); return wrap;
+};
+</script>
+<script>
+(function () {
+  var C = { USDT: "var(--c-usdt)", USDC: "var(--c-usdc)", USDe: "var(--c-usde)", USDS: "var(--c-sky)", DAI: "color-mix(in srgb, var(--c-sky) 55%, var(--surface))", USDG: "var(--c-x)", USD1: "var(--c-y)", PYUSD: "var(--c-y)" };
+  var nets = [
+    { key: "eth", name: "Ethereum", tip: "L1", total: 146.48, token: "ETH", role: "Gas, staking (Proof of Stake)", arch: "L1 blockchain", gas: "ETH",
+      say: "The largest network for stablecoins and DeFi. The only one of the five with large amounts in almost every stablecoin, including USDS/DAI and most of EURC.",
+      mix: [["USDT",73.59],["USDC",45.687],["USDS",6.722],["DAI",4.209],["USDe",2.721]] },
+    { key: "sol", name: "Solana", tip: "L1", total: 16.754, token: "SOL", role: "Gas, staking", arch: "L1 blockchain", gas: "SOL",
+      say: "A fast, cheap L1 network dominated by USDC. It also holds most of USD1 and BlackRock's BUIDL of almost 1 bn $.",
+      mix: [["USDC",7.221],["USDT",2.874],["USD1",1.414]] },
+    { key: "base", name: "Base", tip: "L2", total: 5.269, token: "no native token", role: "Run by Coinbase", arch: "Optimistic rollup (OP Stack)", gas: "ETH",
+      say: "Coinbase's L2 network and the largest L2 by stablecoins. Almost all of it is native USDC, and it also holds about 60 M $ of EURC.",
+      mix: [["USDC",4.439],["USDe",0.393]] },
+    { key: "arb", name: "Arbitrum One", tip: "L2", total: 3.78, token: "ARB", role: "Governance (Arbitrum DAO)", arch: "Optimistic rollup (Arbitrum Nitro)", gas: "ETH",
+      say: "The most diverse L2 network: besides USDC it has significant USDT and PYUSD, plus yield-bearing stablecoins such as USDai.",
+      mix: [["USDC",2.31],["USDT",0.838],["PYUSD",0.357]] },
+    { key: "hood", name: "Robinhood Chain", tip: "L2", total: 1.083, token: "no native token", role: "Run by Robinhood", arch: "Arbitrum chain, settlement on Ethereum", gas: "ETH",
+      say: "Mainnet since 1 July 2026, built for tokenized stocks. The only one of the five networks dominated by neither USDT nor USDC, but by Paxos's USDG.",
+      mix: [["USDG",0.718],["USDe",0.361]] }
+  ];
+  var nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+  function fmt(v) { return v >= 1 ? nf.format(v) + " bn $" : Math.round(v * 1000) + " M $"; }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+  var bars = document.getElementById("bars");
+  var max = nets[0].total;
+  nets.forEach(function (n) {
+    var row = el("div", "bar-row");
+    row.appendChild(el("span", "name", n.name));
+    var tr = el("span", "bar-track");
+    var b = el("span", "bar"); b.style.background = "var(--n-" + n.key + ")";
+    b.style.width = Math.max(0.6, n.total / max * 62) + "%";
+    tr.appendChild(b); tr.appendChild(el("span", "val num", fmt(n.total)));
+    row.appendChild(tr);
+    row.title = n.name + ": " + fmt(n.total);
+    bars.appendChild(row);
+  });
+
+  var np = nets.map(function (n) { return { l: n.name, v: n.total, c: "var(--n-" + n.key + ")", s: fmt(n.total) }; });
+  np.push({ l: "Other networks", v: 307.788 - 173.366, c: "var(--c-rest)", s: fmt(307.788 - 173.366) });
+  document.getElementById("pie-nets").appendChild(window.makePie(np, "307.8 bn", "total"));
+  var cp = [["USDT",184.186],["USDC",74.304],["USDS",6.836],["USDe",4.977],["DAI",4.8]];
+  var cpi = cp.map(function (m) { return { l: m[0], v: m[1], c: C[m[0]], s: fmt(m[1]) }; });
+  var crest = 307.788 - cp.reduce(function (a, m) { return a + m[1]; }, 0);
+  cpi.push({ l: "Other", v: crest, c: "var(--c-rest)", s: fmt(crest) });
+  document.getElementById("pie-coins").appendChild(window.makePie(cpi, "307.8 bn", "total"));
+  var box = document.getElementById("nets");
+  nets.forEach(function (n) {
+    var card = el("article", "net"); card.dataset.n = n.key;
+    var head = el("div", "net-head");
+    head.appendChild(el("h3", null, n.name));
+    head.appendChild(el("span", "chip", n.tip === "L1" ? "L1" : "L2 on Ethereum"));
+    head.appendChild(el("span", "total", fmt(n.total)));
+    card.appendChild(head);
+    var dl = el("dl", "facts");
+    [["Native token", n.token], ["Token role", n.role], ["Architecture", n.arch], ["Gas paid in", n.gas]].forEach(function (f) {
+      var d = el("div"); d.appendChild(el("dt", null, f[0])); d.appendChild(el("dd", null, f[1])); dl.appendChild(d);
+    });
+    card.appendChild(dl);
+    var stack = el("div", "stack"); stack.setAttribute("role", "img");
+    var mix = el("ul", "mix");
+    var named = 0, labels = [];
+    n.mix.forEach(function (m) {
+      named += m[1];
+      var s = el("span"); s.style.width = (m[1] / n.total * 100) + "%"; s.style.background = C[m[0]]; s.title = m[0] + ": " + fmt(m[1]);
+      stack.appendChild(s);
+      var li = el("li"); var i = el("i"); i.style.background = C[m[0]]; li.appendChild(i);
+      li.appendChild(el("b", null, m[0]));
+      li.appendChild(el("span", "v", fmt(m[1]) + " · " + Math.round(m[1] / n.total * 100) + " %"));
+      mix.appendChild(li);
+      labels.push(m[0] + " " + Math.round(m[1] / n.total * 100) + " %");
+    });
+    var rest = n.total - named;
+    if (rest / n.total >= 0.01) {
+    var li = el("li"); var i = el("i"); i.style.background = "var(--c-rest)"; li.appendChild(i);
+    li.appendChild(el("b", null, "Other")); li.appendChild(el("span", "v", fmt(rest) + " · " + Math.round(rest / n.total * 100) + " %"));
+    mix.appendChild(li);
+    }
+    stack.setAttribute("aria-label", "Composition: " + labels.join(", "));
+    var pitems = n.mix.map(function (m) { return { l: m[0], v: m[1], c: C[m[0]], s: fmt(m[1]) }; });
+    if (rest / n.total >= 0.01) pitems.push({ l: "Other", v: rest, c: "var(--c-rest)", s: fmt(rest) });
+    card.appendChild(window.makePie(pitems, fmt(n.total).replace(" $", ""), "stablecoins"));
+    card.appendChild(el("p", "say", n.say));
+    box.appendChild(card);
+  });
+})();
+</script>
+
+<script>
+(function () {
+  var D = [
+    { key: "eth", name: "Ethereum", tvl: "53.9 bn $",
+      uses: [["Lending and borrowing","The largest markets for USDC, USDT and USDS: Aave, Spark, Morpho, Compound."],["Savings and yield","sUSDS (Sky), sUSDe (Ethena) and institutional loans via Maple."],["DEX liquidity","Stablecoin pairs on Uniswap and Curve, the basis for swaps between stablecoins."],["Collateral and settlement","Collateral for derivatives and large institutional transfers."]],
+      p: [["Lido","Liquid staking","26.3 bn $","No direct role; stETH is common collateral for borrowing stablecoins."],["Aave","Lending","16.3 bn $","The largest market for lending and borrowing USDC, USDT and others."],["EigenCloud","Restaking","7.0 bn $","No direct role."],["Spark","Lending","6.6 bn $","Sky ecosystem; lends USDS and DAI, manages USDS liquidity."],["Sky","CDP / issuer","6.2 bn $","Issues USDS and DAI; the Sky Savings Rate pays yield on USDS."],["Ethena","Synthetic dollar","5.4 bn $","Issues USDe; sUSDe earns yield from funding rates."],["Morpho","Lending","5.2 bn $","Isolated lending markets and vaults for USDC and USDT."],["Maple Finance","Institutional lending","3.0 bn $","Loans to institutions in USDC and USDT (syrupUSDC)."],["Uniswap","DEX","2.6 bn $","Swaps and stablecoin/ETH pairs."],["Falcon Finance","Basis trading","1.7 bn $","Issues the synthetic USDf."],["Compound","Lending","1.5 bn $","Markets for borrowing USDC and USDT."],["Curve","Stablecoin DEX","1.3 bn $","Specialized in low-slippage stablecoin swaps."]] },
+    { key: "sol", name: "Solana", tvl: "6.5 bn $",
+      uses: [["Trading","USDC is the main pair for tokens on Jupiter, Raydium, Orca and Meteora."],["Perpetual futures","USDC as margin on Drift and Jupiter Perps."],["Lending","Kamino lends USDC and USDT against SOL collateral."],["Payments and PayFi","Fast, cheap payments; Huma finances stablecoin payments."]],
+      p: [["Sanctum","Liquid staking","2.3 bn $","No direct role."],["Jupiter","DEX aggregator, perps","2.1 bn $","The largest swap router; USDC is the main trading and margin currency."],["Kamino","Lending","1.5 bn $","The largest market for lending USDC and USDT on Solana."],["Raydium","DEX","1.3 bn $","Liquidity pools with USDC and SOL pairs."],["Jito","Staking / MEV","1.2 bn $","No direct role."],["Pump","Launchpad","394 M $","Memecoin launches; trading mostly in SOL."],["Drift","Perpetual futures","335 M $","USDC as margin and collateral."],["Orca","DEX","320 M $","Concentrated liquidity, stablecoin pairs."],["Meteora","DEX","319 M $","Dynamic pools, including stablecoin pools."],["OnRe","RWA","293 M $","Tokenized reinsurance with dollar yield."],["Huma","RWA / PayFi","256 M $","Payment financing; investors supply USDC."]] },
+    { key: "base", name: "Base", tvl: "6.3 bn $",
+      uses: [["Lending via Morpho","The biggest use: USDC loans and vaults, also available through the Coinbase app."],["Trading","Swaps on Aerodrome and Uniswap; USDC is the main pair."],["Payments","Coinbase pushes USDC payments and transfers on Base."],["On-chain euro","Home to the second-largest amount of EURC."]],
+      p: [["Morpho","Lending","4.5 bn $","The dominant protocol; USDC vaults and markets."],["Steakhouse Financial","Risk curator","1.1 bn $","Manages USDC vaults on Morpho."],["Gauntlet","Risk curator","612 M $","Manages vaults on Morpho."],["Aave V3","Lending","558 M $","Lending USDC and borrowing against ETH."],["Uniswap","DEX","501 M $","Stablecoin and token swaps."],["Aerodrome","DEX","399 M $","The main DEX on Base; stablecoin pools with rewards."],["Spark","Lending","357 M $","USDS liquidity on Base."],["Grove Finance","Capital allocator","169 M $","Sky capital allocation into yield-bearing assets."]] },
+    { key: "arb", name: "Arbitrum One", tvl: "1.4 bn $",
+      uses: [["Lending","Aave, Spark, Fluid and Compound for USDC and USDT."],["Derivatives","USDC as collateral and liquidity on GMX."],["Fixed yield","Pendle splits yield-bearing stablecoins into fixed and variable parts."],["Real-world asset loans","USD AI finances GPU hardware with stablecoins."]],
+      p: [["Aave V3","Lending","534 M $","The largest stablecoin lending market on Arbitrum."],["USD AI","RWA","342 M $","Issues USDai; loans for GPU infrastructure."],["Spark","Lending","311 M $","USDS liquidity on Arbitrum."],["GMX","Perpetual futures","207 M $","USDC in GM pools as the counterparty to trades."],["Uniswap","DEX","189 M $","Stablecoin and token swaps."],["Fluid","Lending / DEX","182 M $","Stablecoin lending and swaps."],["Pendle","Yield","181 M $","Fixed yield on sUSDe, USDai and others."],["Compound V3","Lending","72 M $","USDC market."]] },
+    { key: "hood", name: "Robinhood Chain", tvl: "1.0 bn $",
+      uses: [["Buying tokenized stocks","USDG is the money used to buy Stock Tokens."],["Lending and savings","Morpho vaults, part of Robinhood Earn."],["Trading","Uniswap and Lighter, including perpetual futures."]],
+      p: [["Morpho Blue","Lending","605 M $","Markets and vaults for USDG and other stablecoins."],["Steakhouse Financial","Risk curator","536 M $","Manages vaults on Morpho."],["Uniswap","DEX","244 M $","Stablecoin and token swaps."],["Lighter","Exchange / perps","113 M $","Trading with a stablecoin as margin."],["Arcus","Exchange","43 M $","Trading."],["Fables","DEX","42 M $","Swaps."],["Grove Finance","Capital allocator","15 M $","Sky capital allocation."],["Spark","Lending","15 M $","USDS liquidity."]] }
+  ];
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  var box = document.getElementById("defi-list");
+  D.forEach(function (n) {
+    var c = el("article", "dnet"); c.dataset.n = n.key;
+    var h = el("div", "dnet-head"); h.appendChild(el("h3", null, n.name));
+    var t = el("span", "tvl"); t.appendChild(document.createTextNode("TVL ")); t.appendChild(el("b", null, n.tvl)); h.appendChild(t);
+    c.appendChild(h);
+    var u = el("div", "uses");
+    n.uses.forEach(function (x) { var d = el("div", "use"); d.appendChild(el("b", null, x[0])); d.appendChild(el("span", null, x[1])); u.appendChild(d); });
+    c.appendChild(u);
+    var pr = n.p.filter(function (r) { return r[1] !== "Risk curator"; }).map(function (r) {
+      var v = parseFloat(r[2].replace(",", ".")) * (r[2].indexOf(" M $") > -1 ? 0.001 : 1); return { l: r[0], v: v, s: r[2] }; });
+    var top = pr.slice(0, 5), others = pr.slice(5).reduce(function (a, b) { return a + b.v; }, 0);
+    var shades = [100, 78, 60, 44, 30];
+    var pi = top.map(function (x, k) { return { l: x.l, v: x.v, s: x.s, c: "color-mix(in srgb, var(--nc) " + shades[k] + "%, var(--surface))" }; });
+    if (others > 0) pi.push({ l: "Others in table", v: others, s: (others >= 1 ? (Math.round(others * 10) / 10 + " bn $") : Math.round(others * 1000) + " M $"), c: "var(--c-rest)" });
+    c.appendChild(window.makePie(pi, "TVL", "protocols"));
+    c.appendChild(el("p", "pie-note", "Share among the protocols in the table, excluding risk curators (they overlap with Morpho)."));
+    var w = el("div", "table-wrap"); var tb = el("table");
+    tb.innerHTML = '<thead><tr><th>Protocol</th><th>Category</th><th class="r">TVL on network</th><th>Stablecoin role</th></tr></thead>';
+    var body = el("tbody");
+    n.p.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r[0]));
+      var cat = el("td", "cat"); cat.appendChild(el("span", "cat-chip", r[1])); tr.appendChild(cat);
+      tr.appendChild(el("td", "r", r[2]));
+      tr.appendChild(el("td", null, r[3]));
+      body.appendChild(tr);
+    });
+    tb.appendChild(body); w.appendChild(tb); c.appendChild(w);
+    box.appendChild(c);
+  });
+})();
+</script>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  var SC = { USDT: "var(--c-usdt)", USDC: "var(--c-usdc)", USDe: "var(--c-usde)", USDS: "var(--c-sky)", DAI: "color-mix(in srgb, var(--c-sky) 60%, var(--c-usde))", USDG: "var(--c-x)", USD1: "var(--c-y)", PYUSD: "color-mix(in srgb, var(--c-y) 60%, var(--c-x))", Other: "color-mix(in srgb, var(--muted) 70%, var(--surface))" };
+  var CAT = { "Lending": "var(--c-usdc)", "DEX": "var(--c-usdt)", "Staking": "var(--c-x)", "Derivatives": "var(--c-y)", "Stablecoin / yield": "var(--c-sky)", "Other": "color-mix(in srgb, var(--muted) 70%, var(--surface))" };
+  var chains = [
+    { key: "eth", name: "Ethereum", coins: [["USDT",73.59],["USDC",45.687],["USDS",6.722],["DAI",4.209],["USDe",2.721],["Other",13.55]],
+      prot: [["Lido","Staking",26.3],["Aave","Lending",16.3],["EigenCloud","Staking",7.0],["Spark","Lending",6.6],["Sky","Stablecoin / yield",6.2],["Ethena","Stablecoin / yield",5.4],["Morpho","Lending",5.2],["Maple","Lending",3.0],["Uniswap","DEX",2.6],["Falcon","Stablecoin / yield",1.7],["Compound","Lending",1.5],["Curve","DEX",1.3]] },
+    { key: "sol", name: "Solana", coins: [["USDC",7.221],["USDT",2.874],["USD1",1.414],["Other",5.245]],
+      prot: [["Sanctum","Staking",2.256],["Jupiter","DEX",2.057],["Kamino","Lending",1.461],["Raydium","DEX",1.321],["Jito","Staking",1.241],["Pump","Other",0.394],["Drift","Derivatives",0.335],["Orca","DEX",0.32],["Meteora","DEX",0.319],["OnRe","Stablecoin / yield",0.293],["Huma","Lending",0.256]] },
+    { key: "base", name: "Base", coins: [["USDC",4.439],["USDe",0.393],["Other",0.437]],
+      prot: [["Morpho","Lending",4.498],["Aave V3","Lending",0.558],["Uniswap","DEX",0.501],["Aerodrome","DEX",0.399],["Spark","Lending",0.357],["Grove","Stablecoin / yield",0.169]] },
+    { key: "arb", name: "Arbitrum", coins: [["USDC",2.31],["USDT",0.838],["PYUSD",0.357],["Other",0.275]],
+      prot: [["Aave V3","Lending",0.534],["USD AI","Stablecoin / yield",0.342],["Spark","Lending",0.311],["GMX","Derivatives",0.207],["Uniswap","DEX",0.189],["Fluid","Lending",0.182],["Pendle","Stablecoin / yield",0.181],["Compound V3","Lending",0.072]] },
+    { key: "hood", name: "Robinhood Chain", coins: [["USDG",0.718],["USDe",0.361]],
+      prot: [["Morpho Blue","Lending",0.605],["Uniswap","DEX",0.244],["Lighter","Derivatives",0.113],["Arcus","DEX",0.043],["Fables","DEX",0.042],["Grove","Stablecoin / yield",0.015],["Spark","Lending",0.015]] }
+  ];
+  var nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+  function fmt(v) { return v >= 1 ? nf.format(v) + " bn $" : Math.round(v * 1000) + " M $"; }
+  function fmtS(v) { return v >= 1 ? nf.format(v) + " bn" : Math.round(v * 1000) + " M"; }
+
+  // Greedy front packing: each circle placed tangent to two placed circles, closest to the origin, no overlap.
+  function pack(cs) {
+    if (!cs.length) return 0;
+    cs[0].x = 0; cs[0].y = 0;
+    if (cs.length > 1) { cs[1].x = cs[0].r + cs[1].r; cs[1].y = 0; }
+    for (var k = 2; k < cs.length; k++) {
+      var c = cs[k], best = null, bd = Infinity;
+      for (var i = 0; i < k; i++) for (var j = i + 1; j < k; j++) {
+        var a = cs[i], b = cs[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+        var ra = a.r + c.r, rb = b.r + c.r;
+        if (d > ra + rb || d < Math.abs(ra - rb) || d === 0) continue;
+        var l = (ra * ra - rb * rb + d * d) / (2 * d), h = Math.sqrt(Math.max(0, ra * ra - l * l));
+        var mx = a.x + l * dx / d, my = a.y + l * dy / d;
+        [[mx - h * dy / d, my + h * dx / d], [mx + h * dy / d, my - h * dx / d]].forEach(function (q) {
+          for (var m = 0; m < k; m++) { var o = cs[m]; if (Math.hypot(o.x - q[0], o.y - q[1]) < o.r + c.r - 1e-6) return; }
+          var dist = Math.hypot(q[0], q[1]); if (dist < bd) { bd = dist; best = q; }
+        });
+      }
+      if (!best) best = [0, cs.slice(0, k).reduce(function (m, o) { return Math.max(m, o.y + o.r); }, 0) + c.r];
+      c.x = best[0]; c.y = best[1];
+    }
+    var cx = 0, cy = 0;
+    // recenter on bounding box, then compute enclosing radius
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    cs.forEach(function (c) { x0 = Math.min(x0, c.x - c.r); x1 = Math.max(x1, c.x + c.r); y0 = Math.min(y0, c.y - c.r); y1 = Math.max(y1, c.y + c.r); });
+    cx = (x0 + x1) / 2; cy = (y0 + y1) / 2;
+    var R = 0; cs.forEach(function (c) { c.x -= cx; c.y -= cy; R = Math.max(R, Math.hypot(c.x, c.y) + c.r); });
+    return R;
+  }
+  function svgEl(t, a, txt) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; return e; }
+
+  function draw(boxId, field, colorOf, labelOf, equal) {
+    var box = document.getElementById(boxId); box.innerHTML = "";
+    var K = 1.15; // px per sqrt(million $)
+    var groups = chains.map(function (ch) {
+      var items = ch[field].map(function (it) { var v = it[it.length - 1]; return { name: it[0], cat: it[1], v: v }; });
+      var tot = items.reduce(function (a, b) { return a + b.v; }, 0);
+      var f = equal ? 45 / tot : 1;
+      items.forEach(function (it) { it.r = Math.max(2, Math.sqrt(it.v * 1000 * f) * K); });
+      items.sort(function (a, b) { return b.r - a.r; });
+      var R = pack(items) + 8;
+      return { ch: ch, items: items, tot: tot, R: R, r: R + 30 };
+    });
+    groups.forEach(function (g) { g.r = g.R + 30 * Math.max(1, Math.sqrt(groups.reduce(function (a, x) { return a + x.R * x.R; }, 0)) / 420); });
+    function labelFs(it, fsc) {
+      if (it.r <= 17) return 0;
+      var fs = Math.min(15 * fsc, Math.max(9 * fsc, it.r / 3.2));
+      if (it.name.length * fs * 0.6 > it.r * 1.8) fs = it.r * 1.8 / (it.name.length * 0.6);
+      return fs < 8 * fsc ? 0 : fs;
+    }
+    var order, x0, x1, y0, y1, fsc;
+    function layout() {
+      order = groups.slice().sort(function (a, b) { return b.r - a.r; });
+      pack(order);
+      x0 = Infinity; x1 = -Infinity; y0 = Infinity; y1 = -Infinity;
+      order.forEach(function (g) { x0 = Math.min(x0, g.x - g.r); x1 = Math.max(x1, g.x + g.r); y0 = Math.min(y0, g.y - g.r); y1 = Math.max(y1, g.y + g.r); });
+      return Math.max(1, (x1 - x0) / 900);
+    }
+    fsc = layout();
+    // Items too small to carry a label get a line under the network name instead.
+    groups.forEach(function (g) {
+      g.small = g.items.filter(function (it) { return !labelFs(it, fsc); }).sort(function (a, b) { return b.v - a.v; }).slice(0, 5);
+      g.r += g.small.length * 13 * fsc;
+    });
+    fsc = layout();
+    order.forEach(function (g) { y1 = Math.max(y1, g.y + g.R + (36 + g.small.length * 13) * fsc); });
+    var W = x1 - x0, H = y1 - y0;
+    var svg = svgEl("svg", { viewBox: [x0, y0, W, H].map(function (n) { return n.toFixed(1); }).join(" "), role: "img" });
+    svg.style.maxHeight = "760px";
+    var aria = [];
+    groups.forEach(function (g) {
+      var nc = "var(--n-" + g.ch.key + ")";
+      var gg = svgEl("g", {});
+      var circ = svgEl("circle", { cx: g.x, cy: g.y, r: g.R, class: "chain" });
+      circ.style.fill = "color-mix(in srgb, " + nc + " 10%, var(--surface))"; circ.style.stroke = nc;
+      circ.appendChild(svgEl("title", {}, g.ch.name + ": " + fmt(g.tot)));
+      gg.appendChild(circ);
+      g.items.forEach(function (it) {
+        var c = svgEl("circle", { cx: g.x + it.x, cy: g.y + it.y, r: it.r - 1, class: "bub" });
+        c.style.fill = colorOf(it);
+        c.appendChild(svgEl("title", {}, g.ch.name + " · " + it.name + (it.cat ? " (" + it.cat + ")" : "") + ": " + fmt(it.v) + " · " + Math.round(it.v / g.tot * 100) + " %"));
+        gg.appendChild(c);
+        var fs = labelFs(it, fsc);
+        if (fs) {
+          var t = svgEl("text", { x: g.x + it.x, y: g.y + it.y + (it.r > 30 ? -2 : 3), "text-anchor": "middle", class: "bl" }, it.name);
+          t.style.fontSize = fs + "px"; gg.appendChild(t);
+          if (it.r > 30) { var tv = svgEl("text", { x: g.x + it.x, y: g.y + it.y + fs * 0.95, "text-anchor": "middle", class: "bv" }, fmtS(it.v)); tv.style.fontSize = (fs * 0.75) + "px"; gg.appendChild(tv); }
+        }
+      });
+      var ly = g.y + g.R + 16 * fsc;
+      var tl = svgEl("text", { x: g.x, y: ly, "text-anchor": "middle", class: "cl" }, g.ch.name); tl.style.fill = nc; tl.style.fontSize = (15 * fsc) + "px"; gg.appendChild(tl);
+      var tv2 = svgEl("text", { x: g.x, y: ly + 14 * fsc, "text-anchor": "middle", class: "cv" }, fmt(g.tot)); tv2.style.fontSize = (11 * fsc) + "px"; gg.appendChild(tv2);
+      g.small.forEach(function (it, k) {
+        var yy = ly + (28 + k * 13) * fsc, label = it.name + " " + fmtS(it.v);
+        var w = label.length * 6.1 * fsc;
+        var dot = svgEl("circle", { cx: g.x - w / 2 - 7 * fsc, cy: yy - 3.5 * fsc, r: 4 * fsc }); dot.style.fill = colorOf(it); gg.appendChild(dot);
+        var st = svgEl("text", { x: g.x - w / 2, y: yy, class: "cv" }, label); st.style.fontSize = (10.5 * fsc) + "px"; st.style.fill = "var(--ink)"; gg.appendChild(st);
+      });
+      svg.appendChild(gg);
+      aria.push(g.ch.name + " " + fmt(g.tot) + ": " + g.items.slice(0, 3).map(function (i) { return i.name + " " + fmtS(i.v); }).join(", "));
+    });
+    svg.setAttribute("aria-label", aria.join("; "));
+    box.appendChild(svg);
+  }
+  function legend(id, map) {
+    var l = document.getElementById(id); l.innerHTML = "";
+    Object.keys(map).forEach(function (k) { var sp = document.createElement("span"), i = document.createElement("i"); i.style.background = map[k]; sp.appendChild(i); sp.appendChild(document.createTextNode(k)); l.appendChild(sp); });
+  }
+  var coinLeg = {}; ["USDT","USDC","USDS","DAI","USDe","USDG","USD1","PYUSD","Other"].forEach(function (k) { coinLeg[k] = SC[k]; });
+  legend("bm1-leg", coinLeg); legend("bm2-leg", CAT);
+  var equal = false;
+  function render() {
+    draw("bm1", "coins", function (it) { return SC[it.name]; }, null, equal);
+    draw("bm2", "prot", function (it) { return CAT[it.cat]; }, null, equal);
+  }
+  var bR = document.getElementById("bm-real"), bE = document.getElementById("bm-eq");
+  function set(e) { equal = e; bR.setAttribute("aria-pressed", e ? "false" : "true"); bE.setAttribute("aria-pressed", e ? "true" : "false"); render(); }
+  bR.addEventListener("click", function () { set(false); }); bE.addEventListener("click", function () { set(true); });
+  render();
+})();
+</script>
+<script>
+(function () {
+  // [godina, mjesec (1-12), mlrd. $], približno, kraj razdoblja
+  var D = [[2014,10,0.0002],[2015,6,0.0002],[2015,12,0.0004],[2016,6,0.003],[2016,12,0.007],[2017,6,0.1],[2017,9,0.45],[2017,12,1.4],
+    [2018,3,2.4],[2018,6,2.8],[2018,9,2.9],[2018,12,2.7],[2019,3,3.0],[2019,6,4.5],[2019,9,4.7],[2019,12,5.7],
+    [2020,3,8.0],[2020,6,12],[2020,9,19],[2020,12,28],[2021,3,60],[2021,6,110],[2021,9,128],[2021,12,162],
+    [2022,4,187],[2022,6,155],[2022,9,150],[2022,12,138],[2023,3,133],[2023,6,126],[2023,10,121],[2023,12,130],
+    [2024,3,150],[2024,6,162],[2024,9,172],[2024,12,205],[2025,3,229],[2025,6,250],[2025,10,300],[2026,10,307.8]];
+  var E = [
+    [2014,10,"Tether launches USDT, the first major stablecoin (on Bitcoin's Omni network)."],
+    [2017,12,"MakerDAO launches DAI, the first decentralized crypto-backed stablecoin."],
+    [2018,9,"Circle and Coinbase launch USDC."],
+    [2020,7,"DeFi summer: stablecoins become the main currency for lending and trading."],
+    [2021,12,"Supply passes 160 bn $ after growing almost 6x in a year."],
+    [2022,5,"The collapse of Terra's algorithmic UST wipes out about 18 bn $.", 1],
+    [2023,3,"SVB bank collapse: USDC briefly drops to 0.87 $.", 1],
+    [2023,8,"PayPal launches PYUSD."],
+    [2024,2,"Ethena launches the synthetic USDe."],
+    [2024,12,"MiCA takes full effect in the EU."],
+    [2025,7,"The GENIUS Act, the first US federal stablecoin law, is signed."],
+    [2025,10,"Total supply passes 300 bn $."]
+  ];
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function t(y, m) { return y + (m - 0.5) / 12; }
+  function fmt(v) { return v >= 1 ? new Intl.NumberFormat("en-US", { maximumFractionDigits: v >= 100 ? 0 : 1 }).format(v) + " bn $" : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v * 1000 < 1 ? 1 : v * 1000) + (v * 1000 < 1 ? "< 1 M $" : " M $"); }
+  function fmtV(v) { return v * 1000 < 1 ? "less than 1 M $" : fmt(v); }
+  var svg = document.getElementById("hist-svg"), read = document.getElementById("hist-read");
+  var scale = "lin", NS = "http://www.w3.org/2000/svg";
+  function el(n, a, txt) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; return e; }
+
+  var ol = document.getElementById("hist-ev");
+  E.forEach(function (e, i) {
+    var li = document.createElement("li");
+    var n = document.createElement("span"); n.className = "n" + (e[3] ? " bad" : ""); n.textContent = i + 1;
+    var d = document.createElement("div"); var tm = document.createElement("time"); tm.textContent = MON[e[1] - 1] + " " + e[0];
+    d.appendChild(tm); d.appendChild(document.createTextNode(e[2])); li.appendChild(n); li.appendChild(d); ol.appendChild(li);
+  });
+
+  var geo = null;
+  function draw() {
+    var W = Math.max(300, svg.clientWidth || 900), small = W < 560;
+    var H = small ? 320 : 370, L = small ? 34 : 74, R = small ? 12 : 18, T = small ? 56 : 40, B = 28;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("height", H);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var x0 = 2014.5, x1 = 2026.95;
+    var X = function (v) { return L + (v - x0) / (x1 - x0) * (W - L - R); };
+    var Y, ticks;
+    if (scale === "lin") { Y = function (v) { return H - B - v / 320 * (H - B - T); }; ticks = [0, 50, 100, 150, 200, 250, 300]; }
+    else { var lo = Math.log10(0.0001), hi = Math.log10(500); Y = function (v) { return H - B - (Math.log10(Math.max(v, 0.0001)) - lo) / (hi - lo) * (H - B - T); }; ticks = [0.001, 0.01, 0.1, 1, 10, 100]; }
+    ticks.forEach(function (v) {
+      var y = Y(v); svg.appendChild(el("line", { x1: L, x2: W - R, y1: y, y2: y, "class": "grid" }));
+      var lbl = v === 0 ? "0" : v >= 1 ? v + (small ? "" : " bn") : (v * 1000) + (small ? "M" : " M");
+      svg.appendChild(el("text", { x: L - 6, y: y + 4, "text-anchor": "end", "font-size": small ? 10 : 11 }, lbl));
+    });
+    for (var yr = 2015; yr <= 2026; yr++) {
+      if (small && yr % 2) continue;
+      svg.appendChild(el("text", { x: X(yr), y: H - 8, "text-anchor": "middle", "font-size": small ? 10 : 11 }, String(yr)));
+      svg.appendChild(el("line", { x1: X(yr), x2: X(yr), y1: H - B, y2: H - B + 4, "class": "grid" }));
+    }
+    E.forEach(function (e, i) {
+      var x = X(t(e[0], e[1]));
+      svg.appendChild(el("line", { x1: x, x2: x, y1: 12, y2: H - B, "class": "ev" }));
+    });
+    var pts = D.map(function (d) { return [X(t(d[0], d[1])), Y(d[2])]; });
+    var line = "M" + pts.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join("L");
+    svg.appendChild(el("path", { d: line + "L" + pts[pts.length - 1][0].toFixed(1) + "," + (H - B) + "L" + pts[0][0].toFixed(1) + "," + (H - B) + "Z", "class": "area" }));
+    svg.appendChild(el("path", { d: line, "class": "ln" }));
+    var lp = pts[pts.length - 1];
+    svg.appendChild(el("circle", { cx: lp[0], cy: lp[1], r: 4, "class": "pt" }));
+    svg.appendChild(el("text", { x: lp[0] - 6, y: lp[1] + 20, "text-anchor": "end", "font-size": small ? 11 : 12, "class": "endlbl" }, small ? "307.8 bn" : "307.8 bn $"));
+    var rad = small ? 7 : 8, rows = [-1e9, -1e9, -1e9];
+    E.forEach(function (e, i) {
+      var x = X(t(e[0], e[1])), k = 0;
+      while (k < rows.length - 1 && x - rows[k] < 2 * rad + 2) k++;
+      rows[k] = x;
+      var cy = 12 + k * (2 * rad + 3);
+      svg.appendChild(el("circle", { cx: x, cy: cy, r: rad, "class": "evdot" + (e[3] ? " bad" : "") }));
+      svg.appendChild(el("text", { x: x, y: cy, "class": "evnum", "font-size": small ? 8 : 10 }, String(i + 1)));
+    });
+    var cross = el("line", { y1: T, y2: H - B, "class": "cross", visibility: "hidden" }), dot = el("circle", { r: 4, "class": "pt", visibility: "hidden" });
+    svg.appendChild(cross); svg.appendChild(dot);
+    geo = { X: X, Y: Y, pts: pts, cross: cross, dot: dot, W: W };
+  }
+  function show(i) {
+    var d = D[i]; read.innerHTML = "";
+    var b = document.createElement("b"); b.textContent = fmtV(d[2]);
+    read.appendChild(document.createTextNode(MON[d[1] - 1] + " " + d[0] + ": ")); read.appendChild(b);
+    if (!geo) return; var p = geo.pts[i];
+    geo.cross.setAttribute("x1", p[0]); geo.cross.setAttribute("x2", p[0]); geo.cross.setAttribute("visibility", "visible");
+    geo.dot.setAttribute("cx", p[0]); geo.dot.setAttribute("cy", p[1]); geo.dot.setAttribute("visibility", "visible");
+  }
+  function reset() { read.innerHTML = "Move the pointer over the chart to see the value at any point in time."; if (geo) { geo.cross.setAttribute("visibility", "hidden"); geo.dot.setAttribute("visibility", "hidden"); } }
+  function near(ev) {
+    var r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * (geo.W / r.width), best = 0, bd = 1e9;
+    geo.pts.forEach(function (p, i) { var dd = Math.abs(p[0] - x); if (dd < bd) { bd = dd; best = i; } });
+    return best;
+  }
+  svg.addEventListener("pointermove", function (ev) { if (geo) show(near(ev)); });
+  svg.addEventListener("pointerdown", function (ev) { if (geo) show(near(ev)); });
+  svg.addEventListener("pointerleave", reset);
+  document.querySelectorAll("#povijest .seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      scale = b.dataset.s;
+      document.querySelectorAll("#povijest .seg button").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+      draw(); reset();
+    });
+  });
+  var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { draw(); reset(); }, 120); });
+  draw(); reset();
+})();
+</script>

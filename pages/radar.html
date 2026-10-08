@@ -1,0 +1,248 @@
+<title>Radar mintanja stablecoina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column, live status strip per network, controls, stats, then the mint feed; toasts bottom-right */
+:root {
+  --bg: #eef4f2; --surface: #ffffff; --ink: #14211f; --muted: #5b6b68; --line: #dbe2e1;
+  --accent: #0f6e63; --accent-soft: #d7ece8; --warn: #9a5b00; --warn-soft: #f8e9da; --bad: #b23a48; --bad-soft: #f6dfe2;
+  --n-eth: #6272c9; --n-base: #2f6fd6; --n-arb: #2d8fd0; --n-hood: #3a9c62; --n-sol: #8a5cc9;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1615; --surface: #162120; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+  --accent: #5cc9b8; --accent-soft: #1d3632; --warn: #e3a84d; --warn-soft: #33261a; --bad: #ef8a97; --bad-soft: #3a1d22;
+  --n-eth: #8b98e6; --n-base: #6d9cf0; --n-arb: #63b3e6; --n-hood: #6cc995; --n-sol: #b48ef0; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1615; --surface: #162120; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+  --accent: #5cc9b8; --accent-soft: #1d3632; --warn: #e3a84d; --warn-soft: #33261a; --bad: #ef8a97; --bad-soft: #3a1d22;
+  --n-eth: #8b98e6; --n-base: #6d9cf0; --n-arb: #63b3e6; --n-hood: #6cc995; --n-sol: #b48ef0; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 80px; display: grid; gap: 18px; }
+h1 { font-family: var(--f-display); font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0; letter-spacing: -0.01em; }
+h2 { font-family: var(--f-display); font-size: 1.15rem; margin: 0; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+button, select { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lead { color: var(--muted); }
+.banner { border-radius: 8px; padding: 12px 14px; background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); }
+.banner.bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); }
+.nets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+.net { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--nc); border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
+.net h3 { margin: 0; font-family: var(--f-display); font-size: 1.05rem; color: var(--nc); display: flex; align-items: center; gap: 8px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.live { background: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); animation: pulse 2s infinite; }
+.dot.err { background: var(--bad); }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
+.net .big { font-family: var(--f-display); font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.net .sm { font-size: 0.82rem; color: var(--muted); }
+.net .sm.err { color: var(--bad); }
+.net[data-n="eth"] { --nc: var(--n-eth); } .net[data-n="base"] { --nc: var(--n-base); } .net[data-n="arb"] { --nc: var(--n-arb); } .net[data-n="hood"] { --nc: var(--n-hood); } .net[data-n="sol"] { --nc: var(--n-sol); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.controls label { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; }
+.controls select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.controls .spacer { flex: 1; }
+.btn { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.feed-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--f-data); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface)); position: sticky; top: 0; }
+td.r { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-data); }
+td.mono { font-family: var(--f-data); font-size: 0.8rem; }
+tr.new td { animation: flash 2.5s ease-out; }
+@keyframes flash { from { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); } to { background: transparent; } }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--nc) 14%, var(--surface)); color: var(--ink); }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--nc); }
+.chip[data-n="eth"] { --nc: var(--n-eth); } .chip[data-n="base"] { --nc: var(--n-base); } .chip[data-n="arb"] { --nc: var(--n-arb); } .chip[data-n="hood"] { --nc: var(--n-hood); } .chip[data-n="sol"] { --nc: var(--n-sol); }
+.sym { font-family: var(--f-data); font-weight: 500; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+.toasts { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; z-index: 20; width: min(360px, calc(100vw - 32px)); }
+.toast { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--nc); border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: grid; gap: 2px; }
+.toast[data-n="eth"] { --nc: var(--n-eth); } .toast[data-n="base"] { --nc: var(--n-base); } .toast[data-n="arb"] { --nc: var(--n-arb); } .toast[data-n="hood"] { --nc: var(--n-hood); } .toast[data-n="sol"] { --nc: var(--n-sol); }
+.toast b { font-family: var(--f-display); font-size: 1.05rem; }
+.toast .t1 { font-size: 0.8rem; color: var(--muted); }
+.toast-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.toast button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: tin 0.25s ease-out; } }
+@keyframes tin { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.foot { font-size: 0.82rem; color: var(--muted); display: grid; gap: 6px; }
+</style>
+
+<main class="wrap">
+  <header style="display:grid;gap:8px">
+    <h1>Radar mintanja stablecoina</h1>
+    <p class="lead">Prati nova mintanja stablecoina na Ethereumu, Baseu, Arbitrumu, Robinhood Chainu i Solani i javlja svako novo mintanje iskočnom obavijesti. Stranica se osvježava svake minute dok je otvorena i odmah pokazuje mintanja iz zadnjih 30 minuta.</p>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="nets" id="nets" aria-label="Stanje po mrežama"></section>
+
+  <div class="controls">
+    <label for="thr">Najmanji iznos
+      <select id="thr">
+        <option value="0">Svi iznosi</option>
+        <option value="1000">≥ 1.000</option>
+        <option value="10000">≥ 10.000</option>
+        <option value="100000">≥ 100.000</option>
+        <option value="1000000">≥ 1.000.000</option>
+      </select>
+    </label>
+    <label for="pop"><input type="checkbox" id="pop" checked> Iskočne obavijesti</label>
+    <span class="spacer"></span>
+    <span id="clock" class="lead" style="font-size:0.85rem"></span>
+    <button type="button" class="btn" id="now">Provjeri sada</button>
+  </div>
+
+  <section style="display:grid;gap:8px">
+    <h2>Mintanja</h2>
+    <div class="feed-wrap">
+      <table>
+        <thead><tr><th>Vrijeme</th><th>Mreža</th><th>Stablecoin</th><th style="text-align:right">Iznos</th><th>Primatelj</th><th>Transakcija</th></tr></thead>
+        <tbody id="feed"></tbody>
+      </table>
+      <div id="empty" class="empty">Učitavam mintanja iz zadnjih 30 minuta…</div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>Mintanje je prijenos tokena s nulte adrese (event Transfer), a za USDT na Ethereumu event Issue. Pokriveni tokeni: Ethereum USDT, USDC, USDS, DAI, USDe, PYUSD, USD1, RLUSD, USDG, EURC · Base USDC, EURC, USDe · Arbitrum USDC, USD₮0, PYUSD, USDe · Robinhood Chain USDG, USDe, U.</p>
+    <p>Solana: USDC, USDT, PYUSD, USDG, USD1, EURC (instrukcija mintTo). Iznos u EURC-u prikazan je u eurima, a za prag se računa 1:1. Podaci: Blockscout za EVM mreže, Helius za Solanu.</p>
+  </div>
+</main>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var CHAINS = [
+    { key: "eth", name: "Ethereum", id: "1", ex: "https://etherscan.io", all: true, tokens: {
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6], "0xdc035d45d973e3ec169d2276ddab16f1e407384f": ["USDS", 18],
+      "0x6b175474e89094c44da98b954eedeac495271d0f": ["DAI", 18], "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": ["USDe", 18],
+      "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
+      "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
+      "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] },
+      issue: "0xdac17f958d2ee523a2206206994597c13d831ec7" },
+    { key: "base", name: "Base", id: "8453", ex: "https://basescan.org", all: true, tokens: {
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
+      "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
+    { key: "arb", name: "Arbitrum", id: "42161", ex: "https://arbiscan.io", all: true, tokens: {
+      "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
+      "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
+    { key: "hood", name: "Robinhood Chain", id: "4663", ex: "https://robinhoodchain.blockscout.com", all: true, tokens: {
+      "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
+      "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
+    { key: "sol", name: "Solana", ex: "https://solscan.io", solana: true, tokens: {} }
+  ];
+
+  var POLL_MS = 60000, MAX_ROWS = 300, lastCycle = 0;
+  var nf0 = new Intl.NumberFormat("hr-HR", { maximumFractionDigits: 0 });
+  var nf2 = new Intl.NumberFormat("hr-HR", { maximumFractionDigits: 2 });
+  var tf = new Intl.DateTimeFormat("hr-HR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  var $ = function (id) { return document.getElementById(id); };
+  var seen = new Set(), mints = [], live = false, busy = false, firstDone = false;
+  var thr = 10000, pops = true;
+  try { var sv = localStorage.getItem("thr2"); if (sv !== null) thr = Number(sv); pops = localStorage.getItem("pop") !== "0"; } catch (e) {}
+  $("thr").value = String(thr); $("pop").checked = pops;
+  $("thr").addEventListener("change", function () { thr = Number(this.value); try { localStorage.setItem("thr2", String(thr)); } catch (e) {} render(); });
+  $("pop").addEventListener("change", function () { pops = this.checked; try { localStorage.setItem("pop", pops ? "1" : "0"); } catch (e) {} });
+
+  var BY_KEY = {};
+  CHAINS.forEach(function (c) {
+    BY_KEY[c.key] = c;
+    c.state = { count: 0, sum: 0, err: "", last: 0 };
+    var el = document.createElement("article"); el.className = "net"; el.dataset.n = c.key;
+    el.innerHTML = '<h3><span class="dot"></span><span></span></h3><div class="big">0</div><div class="sm sum"></div><div class="sm st">Povezujem…</div>';
+    el.querySelector("h3 span:last-child").textContent = c.name;
+    $("nets").appendChild(el); c.el = el;
+  });
+
+  function money(v, sym) { var s = v >= 100 ? nf0.format(v) : nf2.format(v); return sym === "EURC" ? s + " €" : s + " $"; }
+  function short(a) { return a.slice(0, 6) + "…" + a.slice(-4); }
+  function banner(msg, bad) { var b = $("banner"); if (!msg) { b.hidden = true; return; } b.hidden = false; b.className = "banner" + (bad ? " bad" : ""); b.textContent = msg; }
+  function api(path) {
+    return fetch(path, { cache: "no-store" }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
+  }
+
+  function add(c, x, fresh) {
+    if (!x || seen.has(x.id)) return; seen.add(x.id);
+    if (!(x.amt > 0)) return;
+    var m = { c: c, sym: x.sym, amt: Number(x.amt), to: x.to || "", tx: x.tx, ts: (x.ts || Date.now() / 1000) * 1000, blk: x.blk, fresh: fresh, id: x.id };
+    mints.push(m); c.state.count++; c.state.sum += m.amt;
+    if (fresh && pops && m.amt >= thr) toast(m);
+  }
+
+  function cycle() {
+    if (busy) return Promise.resolve(); busy = true; lastCycle = Date.now();
+    var fresh = firstDone;
+    var evm = api("/api/radar/evm").then(function (d) {
+      Object.keys(d.chains || {}).forEach(function (k) {
+        var c = BY_KEY[k], r = d.chains[k]; if (!c) return;
+        if (r.ok) { (r.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); }
+        else c.state.err = "Greška: " + (r.err || "nepoznata");
+      });
+    }, function (e) { CHAINS.forEach(function (c) { if (!c.solana) c.state.err = "Nema veze s poslužiteljem: " + (e.message || ""); }); });
+    var sol = api("/api/radar/sol").then(function (d) {
+      var c = BY_KEY.sol; (d.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now();
+    }, function (e) { BY_KEY.sol.state.err = "Solana greška: " + (e.message || "nepoznata"); });
+    return Promise.all([evm, sol]).then(function () { live = true; firstDone = true; banner(""); busy = false; render(); });
+  }
+
+  function toast(m) {
+    var t = document.createElement("div"); t.className = "toast"; t.dataset.n = m.c.key; t.setAttribute("role", "status");
+    t.innerHTML = '<div class="toast-head"><b></b><button type="button" aria-label="Zatvori">×</button></div><div class="t2"></div><div class="t1"></div>';
+    t.querySelector("b").textContent = "Novo mintanje: " + money(m.amt, m.sym) + " " + m.sym;
+    t.querySelector(".t2").textContent = m.c.name + " → " + (m.to ? short(m.to) : "trezor izdavatelja");
+    var a = document.createElement("a"); a.href = m.c.ex + "/tx/" + m.tx; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Otvori transakciju";
+    var t1 = t.querySelector(".t1"); t1.textContent = tf.format(new Date(m.ts)) + " · "; t1.appendChild(a);
+    t.querySelector("button").addEventListener("click", function () { t.remove(); });
+    var box = $("toasts"); box.prepend(t);
+    while (box.children.length > 4) box.lastChild.remove();
+    setTimeout(function () { t.remove(); }, 9000);
+  }
+
+  var shown = new Set();
+  function render() {
+    mints.sort(function (a, b) { return b.ts - a.ts; });
+    if (mints.length > 2000) mints.length = 2000;
+    var rows = mints.filter(function (m) { return m.amt >= thr; }).slice(0, MAX_ROWS);
+    var tb = $("feed"); tb.innerHTML = "";
+    rows.forEach(function (m) {
+      var tr = document.createElement("tr"); if (m.fresh && !shown.has(m.id)) tr.className = "new"; shown.add(m.id);
+      function td(cls, txt) { var d = document.createElement("td"); if (cls) d.className = cls; if (txt != null) d.textContent = txt; tr.appendChild(d); return d; }
+      td("mono", tf.format(new Date(m.ts)));
+      var c = td(); var ch = document.createElement("span"); ch.className = "chip"; ch.dataset.n = m.c.key; ch.innerHTML = "<i></i>"; ch.appendChild(document.createTextNode(m.c.name)); c.appendChild(ch);
+      var s = td(); var sp = document.createElement("span"); sp.className = "sym"; sp.textContent = m.sym; s.appendChild(sp);
+      td("r", money(m.amt, m.sym));
+      td("mono", m.to ? short(m.to) : "trezor izdavatelja");
+      var tx = td("mono"); var a = document.createElement("a"); a.href = m.c.ex + "/tx/" + m.tx; a.target = "_blank"; a.rel = "noopener"; a.textContent = short(m.tx); tx.appendChild(a);
+      tb.appendChild(tr);
+    });
+    var em = $("empty");
+    em.hidden = rows.length > 0 || !live;
+    if (live && !rows.length) em.textContent = thr ? "Nema mintanja iznad odabranog praga u zadnjih 30 minuta. Pratim dalje." : "Nema mintanja u zadnjih 30 minuta. Pratim dalje.";
+    CHAINS.forEach(function (c) {
+      var st = c.state, el = c.el;
+      var since = mints.filter(function (m) { return m.c === c; });
+      el.querySelector(".big").textContent = nf0.format(since.length) + (since.length === 1 ? " mintanje" : " mintanja");
+      var usd = since.filter(function (m) { return m.sym !== "EURC"; }).reduce(function (a, m) { return a + m.amt; }, 0);
+      el.querySelector(".sum").textContent = "ukupno " + money(usd, "") + " od otvaranja (+30 min unazad)";
+      var stEl = el.querySelector(".st"), dot = el.querySelector(".dot");
+      if (st.err) { stEl.textContent = st.err; stEl.className = "sm st err"; dot.className = "dot err"; }
+      else if (st.last) { stEl.textContent = "Zadnja provjera " + tf.format(new Date(st.last)); stEl.className = "sm st"; dot.className = "dot live"; }
+    });
+  }
+
+  $("now").addEventListener("click", function () { if (Date.now() - lastCycle > 20000) cycle(); });
+  cycle();
+  setInterval(function () { if (!document.hidden) cycle(); }, POLL_MS);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && Date.now() - lastCycle > POLL_MS / 2) cycle(); });
+  setInterval(function () { $("clock").textContent = live ? "Uživo · provjera svake minute" : ""; }, 1000);
+})();
+</script>

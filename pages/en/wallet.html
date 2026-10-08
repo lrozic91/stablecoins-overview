@@ -1,0 +1,481 @@
+<title>Stablecoin wallet checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column (max 1000px). Address bar on top, then figures, holdings table, balance history chart, protocol positions. Same family as Atlas stablecoina. */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #14211f;
+  --muted: #5b6b68;
+  --line: #dbe2e1;
+  --accent: #0f6e63;
+  --accent-soft: #d7ece8;
+  --pos: #0f6e63;
+  --neg: #b3261e;
+  --warn: #9a5b00;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1615; --surface: #162020; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+    --accent: #5cc9b8; --accent-soft: #1d3632; --pos: #5cc9b8; --neg: #f2867e; --warn: #e3a84d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1615; --surface: #162020; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+  --accent: #5cc9b8; --accent-soft: #1d3632; --pos: #5cc9b8; --neg: #f2867e; --warn: #e3a84d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.02rem; font-weight: 700; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-family: var(--f-data); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+header.hero { padding-block: 44px 20px; display: grid; gap: 12px; }
+header.hero .lead { font-size: 1.1rem; color: var(--muted); }
+form.addr { display: flex; flex-wrap: wrap; gap: 10px; }
+form.addr input { flex: 1 1 320px; min-width: 0; font-family: var(--f-data); font-size: 0.95rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 11px 12px; }
+form.addr button { font: inherit; font-weight: 600; background: var(--accent); color: var(--bg); border: 0; border-radius: 6px; padding: 11px 22px; cursor: pointer; }
+form.addr button:disabled { opacity: 0.6; cursor: progress; }
+.hint { font-size: 0.86rem; color: var(--muted); }
+
+.progress { display: grid; gap: 6px; font-size: 0.9rem; }
+.progress .row { display: flex; gap: 10px; align-items: baseline; }
+.progress .row b { font-weight: 500; min-width: 130px; }
+.progress .st { color: var(--muted); }
+.progress .st.ok { color: var(--pos); }
+.progress .st.err { color: var(--neg); }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 6px; padding: 22px; display: grid; gap: 10px; color: var(--muted); }
+.empty ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+
+section { padding-block: 34px 0; display: grid; gap: 14px; }
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; padding-block: 8px 0; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.fig b { font-family: var(--f-display); font-size: 1.55rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig span { color: var(--muted); font-size: 0.88rem; }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-data); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; }
+.sym { font-weight: 600; }
+.sub { font-size: 0.8rem; color: var(--muted); }
+.plus { color: var(--pos); }
+.minus { color: var(--neg); }
+.flag { color: var(--warn); font-size: 0.8rem; }
+
+.chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.readout { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); min-height: 1.3em; }
+svg.hist { width: 100%; height: auto; display: block; touch-action: pan-y; }
+svg.hist text { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }
+svg.hist .grid { stroke: var(--line); stroke-width: 1; }
+svg.hist .area { fill: var(--accent-soft); stroke: none; }
+svg.hist .line { fill: none; stroke: var(--accent); stroke-width: 2; }
+svg.hist .cross { stroke: var(--muted); stroke-dasharray: 3 3; }
+svg.hist .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+
+.positions { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.pos { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.pos .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.pos .kind { font-size: 0.75rem; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); white-space: nowrap; }
+.pos .amt { font-family: var(--f-display); font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pos .tok { font-family: var(--f-data); font-size: 0.8rem; color: var(--muted); word-break: break-word; }
+.notes { display: grid; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+.caption { font-size: 0.85rem; color: var(--muted); }
+@media (max-width: 640px) { .hide-sm { display: none; } th, td { padding: 8px; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="eyebrow">Ethereum · Base · Arbitrum · Robinhood Chain · Solana</span>
+    <h1>Stablecoin wallet checker</h1>
+    <p class="lead">Enter a wallet address. The page shows how much in stablecoins it holds, how the balance has changed, and which protocols its stablecoins are locked in.</p>
+    <form class="addr" id="form" autocomplete="off">
+      <input id="addr" name="addr" spellcheck="false" placeholder="0x… (Ethereum, Base, Arbitrum, Robinhood) or Solana address" aria-label="Wallet address">
+      <button type="submit" id="go">Check</button>
+    </form>
+    <p class="hint" id="hint">A 0x… address is checked on four EVM networks, a Solana address on Solana. Nothing is signed or sent from the wallet.</p>
+    <div class="progress" id="progress" hidden></div>
+  </header>
+
+  <div id="empty" class="empty">
+    <b style="color:var(--ink)">What you will see after the check</b>
+    <ul>
+      <li>The balance of each stablecoin per network and the total in dollars.</li>
+      <li>A chart of the total stablecoin balance over time, plus the latest deposits and withdrawals.</li>
+      <li>Protocol positions: Aave, Compound, Morpho vaults, Sky, Ethena, Pendle, Curve, Kamino and others, recognised by the tokens the wallet holds.</li>
+    </ul>
+  </div>
+
+  <div id="result" hidden>
+    <div class="figures" id="figures"></div>
+
+    <section>
+      <h2>Stablecoins in the wallet</h2>
+      <div class="table-wrap"><table><thead><tr><th>Stablecoin</th><th>Network</th><th class="r">Balance</th><th class="r hide-sm">Last change</th></tr></thead><tbody id="holdings"></tbody></table></div>
+      <p class="caption" id="hold-cap"></p>
+    </section>
+
+    <section>
+      <h2>Change over time</h2>
+      <div class="chart-card">
+        <div class="chart-head"><h3>Total stablecoin balance in dollars</h3><span class="readout" id="readout"></span></div>
+        <div id="chart"></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Network</th><th>Stablecoin</th><th class="r">Change</th><th class="hide-sm">Transaction</th></tr></thead><tbody id="events"></tbody></table></div>
+      <p class="caption" id="hist-cap"></p>
+    </section>
+
+    <section>
+      <h2>Protocols and pools</h2>
+      <p id="pos-intro">Tokens a wallet receives when it locks stablecoins in a protocol: deposit receipts, vault shares and LP tokens.</p>
+      <div class="positions" id="positions"></div>
+    </section>
+
+    <section>
+      <h2>Limitations</h2>
+      <div class="notes">
+        <p>On EVM networks the balance is computed from all token transfers. Aave aTokens grow with interest without transfers, so their balance shown is slightly lower than the real one.</p>
+        <p>Positions that do not issue a token are not visible: direct loans on Morpho Blue, Kamino Lend, marginfi and Drift, and Uniswap v3 positions (NFTs) on EVM networks.</p>
+        <p>Tokens the wallet did not buy or lock itself (fake airdrops) are not shown as positions. For vaults and savings tokens (sUSDe, sUSDS) the number of tokens is shown, not their dollar value, unless the price is known.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var ES = "", SOL = "";
+  var CHAINS = [
+    { key: "eth", name: "Ethereum", id: "1", ex: "https://etherscan.io", tokens: {
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": "USDC", "0xdac17f958d2ee523a2206206994597c13d831ec7": "USDT",
+      "0xdc035d45d973e3ec169d2276ddab16f1e407384f": "USDS", "0x6b175474e89094c44da98b954eedeac495271d0f": "DAI",
+      "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": "USDe", "0x6c3ea9036406852006290770bedfcaba0e23a0e8": "PYUSD",
+      "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": "USD1", "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": "RLUSD",
+      "0xe343167631d89b6ffc58b88d6b7fb0228795491d": "USDG", "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": "EURC",
+      "0x853d955acef822db058eb8505911ed77f175b99e": "FRAX", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e": "crvUSD" } },
+    { key: "base", name: "Base", id: "8453", ex: "https://basescan.org", tokens: {
+      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": "USDC", "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca": "USDbC",
+      "0x50c5725949a6f0c72e6c4a641f24049a917db0cb": "DAI", "0x820c137fa70c8691f0e44dc420a5e53c168921dc": "USDS",
+      "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": "EURC", "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": "USDe" } },
+    { key: "arb", name: "Arbitrum", id: "42161", ex: "https://arbiscan.io", tokens: {
+      "0xaf88d065e77c8cc2239327c5edb3a432268e5831": "USDC", "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": "USDC.e",
+      "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": "USD₮0", "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": "DAI",
+      "0x46850ad61c2b7d64d08c9c754f45254596696984": "PYUSD", "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": "USDe" } },
+    { key: "hood", name: "Robinhood Chain", id: "4663", ex: "https://robinhoodchain.blockscout.com", tokens: {
+      "0x5fc5360d0400a0fd4f2af552add042d716f1d168": "USDG", "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": "USDe" } }
+  ];
+  var SOL_STABLES = {
+    EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC", Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: "USDT",
+    "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo": "PYUSD", "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH": "USDG",
+    USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB: "USD1", HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr: "EURC",
+    USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA: "USDS"
+  };
+  var EUR = { EURC: true };
+  var ZERO = "0x0000000000000000000000000000000000000000";
+  var PAGE = 1000;
+
+  // Protokol se prepoznaje po simbolu i imenu tokena koji wallet drži.
+  var PROTOCOLS = [
+    [/aave|^a(eth|arb|bas|base|opt|pol)?(usd|dai|gho|pyusd|frax|lusd|rlusd|eurc)/i, "Aave", "Lending", true],
+    [/compound|^c(usdc|usdt|usds|weth)v3/i, "Compound", "Lending", true],
+    [/^sp(usd|dai)|spark/i, "Spark", "Lending / savings", false],
+    [/^susde$|ethena/i, "Ethena (sUSDe)", "Savings", false],
+    [/^(susds|sdai|stusds)$|savings (usds|dai)|sky/i, "Sky (savings rate)", "Savings", false],
+    [/^(pt|yt)-|pendle/i, "Pendle", "Fixed yield", false],
+    [/steak|gtusd|re7|bbq|morpho|^mev|smokehouse|^hyper/i, "Morpho vault", "Vault", false],
+    [/syrup|maple/i, "Maple", "Loans (RWA)", false],
+    [/^f(usdc|usdt|gho)|fluid/i, "Fluid", "Lending", false],
+    [/^e(usdc|usdt|usds)|euler/i, "Euler", "Lending", false],
+    [/curve|crv|3crv|-f$/i, "Curve", "Liquidity pool", false],
+    [/uni-v2|uniswap/i, "Uniswap", "Liquidity pool", false],
+    [/vamm|samm|aerodrome|velodrome/i, "Aerodrome", "Liquidity pool", false],
+    [/balancer|bpt/i, "Balancer", "Liquidity pool", false],
+    [/^yv|yearn/i, "Yearn", "Vault", false],
+    [/^moo|beefy/i, "Beefy", "Vault", false],
+    [/^cvx|convex/i, "Convex", "Vault", false],
+    [/gearbox|^d(usdc|usdt)/i, "Gearbox", "Lending", false],
+    [/silo/i, "Silo", "Lending", false],
+    [/kamino|^k(usdc|usdt)/i, "Kamino", "Vault / liquidity", false],
+    [/whirlpool|orca/i, "Orca", "Liquidity pool", false],
+    [/raydium|clmm/i, "Raydium", "Liquidity pool", false],
+    [/meteora|dlmm/i, "Meteora", "Liquidity pool", false],
+    [/jlp|jupiter/i, "Jupiter", "Liquidity pool", false],
+    [/^usdy|ondo/i, "Ondo", "Tokenized bonds", false],
+    [/^ousg|buidl/i, "Tokenized fund", "Tokenized bonds", false]
+  ];
+  function protocolOf(sym, name) {
+    var s = (sym || "") + " " + (name || "");
+    for (var i = 0; i < PROTOCOLS.length; i++) if (PROTOCOLS[i][0].test(sym || "") || PROTOCOLS[i][0].test(name || "")) return { name: PROTOCOLS[i][1], kind: PROTOCOLS[i][2], oneToOne: PROTOCOLS[i][3] };
+    return /usd|dai|gho|frax|eur/i.test(s) ? { name: "Unknown protocol", kind: "Stablecoin-backed token", oneToOne: false } : null;
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var nf2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  var df = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "numeric", year: "numeric" });
+  function money(v, cur) { return (Math.abs(v) >= 1e6 ? nf0.format(v) : nf2.format(v)) + " " + (cur || "$"); }
+  function qty(v) { return Math.abs(v) >= 1000 ? nf0.format(v) : nf2.format(v); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function short(h) { return h ? h.slice(0, 6) + "…" + h.slice(-4) : ""; }
+
+  function unwrap(x) {
+    if (typeof x === "string") { try { return JSON.parse(x); } catch (e) { return x; } }
+    if (x && x.result === undefined && x.data === undefined && x.tokens === undefined && x.structuredContent) return unwrap(x.structuredContent);
+    if (x && x.result === undefined && x.data === undefined && x.tokens === undefined && Array.isArray(x.content) && x.content[0] && typeof x.content[0].text === "string") return unwrap(x.content[0].text);
+    return x;
+  }
+
+  var mcp = true;
+  function api(path) {
+    return fetch(path).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
+  }
+  function etherscanTransfers(chain, address, contract) {
+    return api("/api/evm/transfers?chain=" + chain.id + "&address=" + encodeURIComponent(address) + (contract ? "&contract=" + contract : "")).then(function (d) { return d.result || []; });
+  }
+  function solanaWallet(address) { return api("/api/sol/wallet?address=" + encodeURIComponent(address)); }
+
+  function errText(e) { return (e && e.message) || "unknown error"; }
+
+  // ---------- EVM ----------
+  function analyseEvm(chain, address, txs, truncated) {
+    var me = address.toLowerCase();
+    var byToken = {}, outHashes = {};
+    txs.forEach(function (t) { if ((t.from || "").toLowerCase() === me) outHashes[t.hash] = true; });
+    var events = [];
+    txs.forEach(function (t) {
+      var c = (t.contractAddress || "").toLowerCase();
+      var dec = Number(t.tokenDecimal || 18);
+      var v = Number(t.value || 0) / Math.pow(10, dec);
+      var from = (t.from || "").toLowerCase(), to = (t.to || "").toLowerCase();
+      var d = (to === me ? v : 0) - (from === me ? v : 0);
+      if (!d) return;
+      var tk = byToken[c] || (byToken[c] = { contract: c, sym: t.tokenSymbol || "?", name: t.tokenName || "", bal: 0, last: 0, trusted: false });
+      tk.bal += d;
+      var ts = Number(t.timeStamp || 0);
+      if (ts > tk.last) tk.last = ts;
+      if (from === ZERO || outHashes[t.hash] || from === me) tk.trusted = true;
+      if (chain.tokens[c]) events.push({ ts: ts, chain: chain, sym: chain.tokens[c], d: d, tx: t.hash });
+    });
+    var holdings = [], positions = [];
+    Object.keys(byToken).forEach(function (c) {
+      var tk = byToken[c];
+      if (chain.tokens[c]) {
+        if (tk.bal > 0.005) holdings.push({ chain: chain, sym: chain.tokens[c], bal: tk.bal, last: tk.last, approx: truncated });
+        return;
+      }
+      if (tk.bal <= 1e-6 || !tk.trusted) return;
+      var p = protocolOf(tk.sym, tk.name);
+      if (!p) return;
+      positions.push({ chain: chain, protocol: p.name, kind: p.kind, sym: tk.sym, name: tk.name, bal: tk.bal, usd: p.oneToOne ? tk.bal : null,
+        link: chain.ex + "/token/" + c + "?a=" + address, approx: truncated || p.name === "Aave" });
+    });
+    return { holdings: holdings, positions: positions, events: events };
+  }
+
+  function checkEvm(address, status) {
+    var out = { holdings: [], positions: [], events: [], truncated: [] };
+    var p = Promise.resolve();
+    CHAINS.forEach(function (chain) {
+      p = p.then(function () {
+        status(chain.name, "checking…");
+        return etherscanTransfers(chain, address).then(function (txs) {
+          if (txs.length < PAGE) return { txs: txs, truncated: false };
+          // Puno prijenosa: stablecoine dohvati posebno, da im stanje bude točno.
+          var seen = {};
+          txs.forEach(function (t) { var c = (t.contractAddress || "").toLowerCase(); if (chain.tokens[c]) seen[c] = true; });
+          var q = Promise.resolve(), extra = [], trunc = false;
+          Object.keys(seen).forEach(function (c) {
+            q = q.then(function () { return etherscanTransfers(chain, address, c).then(function (r) { if (r.length >= PAGE) trunc = true; extra = extra.concat(r); }); });
+          });
+          return q.then(function () {
+            var rest = txs.filter(function (t) { return !chain.tokens[(t.contractAddress || "").toLowerCase()]; });
+            return { txs: rest.concat(extra), truncated: trunc, partialPositions: true };
+          });
+        }).then(function (r) {
+          var a = analyseEvm(chain, address, r.txs, r.truncated);
+          if (r.partialPositions) a.positions.forEach(function (x) { x.approx = true; });
+          out.holdings = out.holdings.concat(a.holdings); out.positions = out.positions.concat(a.positions); out.events = out.events.concat(a.events);
+          if (r.truncated || r.partialPositions) out.truncated.push(chain.name);
+          var n = a.holdings.length + a.positions.length;
+          status(chain.name, n ? a.holdings.length + " stablecoins, " + a.positions.length + " positions" : "nothing", "ok");
+        }, function (e) {
+          status(chain.name, errText(e, ES), "err");
+          if (e && e.code === "rate_limited") throw e;
+        });
+      });
+    });
+    return p.catch(function () {}).then(function () { return out; });
+  }
+
+  // ---------- Solana ----------
+  function checkSolana(address, status) {
+    status("Solana", "checking…");
+    var sol = { name: "Solana", key: "sol", ex: "https://solscan.io" };
+    return solanaWallet(address).then(function (d) {
+      var holdings = [], positions = [], events = [], lastBySym = {};
+      (d.events || []).forEach(function (e) {
+        events.push({ ts: e[0], chain: sol, sym: e[1], d: e[2], tx: e[3] });
+        if (!lastBySym[e[1]] || e[0] > lastBySym[e[1]]) lastBySym[e[1]] = e[0];
+      });
+      d.tokens.forEach(function (t) {
+        var mint = t[0], sym = t[1], name = t[2], bal = t[3], price = t[4];
+        if (SOL_STABLES[mint]) { holdings.push({ chain: sol, sym: SOL_STABLES[mint], bal: bal, last: lastBySym[SOL_STABLES[mint]] || 0, approx: false }); return; }
+        var p = protocolOf(sym, name);
+        // Bez cijene i bez poznatog protokola token je vjerojatno lažni airdrop.
+        if (!p || (p.name === "Unknown protocol" && price == null)) return;
+        positions.push({ chain: sol, protocol: p.name, kind: p.kind, sym: sym, name: name, bal: bal, usd: price != null ? bal * price : null,
+          link: "https://solscan.io/token/" + mint, approx: false });
+      });
+      (d.positions || []).forEach(function (n) {
+        var p = protocolOf(n[2], n[1]) || { name: "LP position", kind: "Liquidity pool" };
+        positions.push({ chain: sol, protocol: p.name, kind: p.kind, sym: n[2] || "NFT", name: n[1], bal: null, usd: null, link: "https://solscan.io/token/" + n[0], approx: false, nft: true });
+      });
+      status("Solana", holdings.length + " stablecoins, " + positions.length + " positions", "ok");
+      return { holdings: holdings, positions: positions, events: events, truncated: d.complete ? [] : ["Solana"], scanned: d.scanned };
+    }, function (e) {
+      status("Solana", errText(e, SOL), "err");
+      return { holdings: [], positions: [], events: [], truncated: [] };
+    });
+  }
+
+  // ---------- Prikaz ----------
+  var lastResult = null;
+  function render(addr, r) {
+    lastResult = r;
+    $("empty").hidden = true; $("result").hidden = false;
+    var usdTotal = 0, eurTotal = 0;
+    r.holdings.forEach(function (h) { if (EUR[h.sym]) eurTotal += h.bal; else usdTotal += h.bal; });
+    var posUsd = 0, posUnknown = 0;
+    r.positions.forEach(function (p) { if (p.usd != null) posUsd += p.usd; else posUnknown++; });
+    var chainsWith = {};
+    r.holdings.concat(r.positions).forEach(function (h) { chainsWith[h.chain.name] = true; });
+    $("figures").innerHTML =
+      fig(money(usdTotal), "in stablecoins in the wallet" + (eurTotal ? " (+ " + money(eurTotal, "€") + ")" : "")) +
+      fig(money(posUsd), "in protocols with a known value" + (posUnknown ? ", plus " + posUnknown + " without a price" : "")) +
+      fig(String(r.holdings.length), "stablecoin balances across networks") +
+      fig(String(Object.keys(chainsWith).length), "networks with activity");
+
+    var hs = r.holdings.slice().sort(function (a, b) { return b.bal - a.bal; });
+    $("holdings").innerHTML = hs.length ? hs.map(function (h) {
+      return "<tr><td class=\"sym\">" + esc(h.sym) + "</td><td>" + esc(h.chain.name) + "</td><td class=\"r mono\">" + (h.approx ? "≈ " : "") + money(h.bal, EUR[h.sym] ? "€" : "$") + "</td><td class=\"r mono hide-sm\">" + (h.last ? df.format(new Date(h.last * 1000)) : "–") + "</td></tr>";
+    }).join("") : '<tr><td colspan="4" class="sub">The wallet currently holds none of the tracked stablecoins.</td></tr>';
+    $("hold-cap").textContent = r.truncated.length ? "On " + r.truncated.join(", ") + " the wallet has more transfers than the page can fetch, so balances marked with ≈ are approximate." : "Balances are computed from transfers and are valid as of the time of the check.";
+
+    drawChart(r);
+    var ev = r.events.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, 25);
+    $("events").innerHTML = ev.length ? ev.map(function (e) {
+      var href = e.chain.ex + "/tx/" + e.tx;
+      return "<tr><td class=\"mono\">" + df.format(new Date(e.ts * 1000)) + "</td><td>" + esc(e.chain.name) + "</td><td class=\"sym\">" + esc(e.sym) + "</td><td class=\"r mono " + (e.d > 0 ? "plus" : "minus") + "\">" + (e.d > 0 ? "+" : "−") + qty(Math.abs(e.d)) + "</td><td class=\"hide-sm mono\"><a href=\"" + esc(href) + "\" target=\"_blank\" rel=\"noopener\">" + esc(short(e.tx)) + "</a></td></tr>";
+    }).join("") : '<tr><td colspan="5" class="sub">No stablecoin transfers.</td></tr>';
+    $("hist-cap").textContent = "Latest " + ev.length + " of " + r.events.length + " changes. The chart excludes EURC." + (r.scanned ? " On Solana the latest " + r.scanned + " transactions were scanned." : "");
+
+    var ps = r.positions.slice().sort(function (a, b) { return (b.usd || b.bal || 0) - (a.usd || a.bal || 0); });
+    $("pos-intro").hidden = false;
+    $("positions").innerHTML = ps.length ? ps.map(function (p) {
+      var amt = p.nft ? "LP position" : (p.approx ? "≈ " : "") + qty(p.bal) + " " + esc(p.sym);
+      var val = p.usd != null ? "<div class=\"sub\">≈ " + money(p.usd) + "</div>" : "";
+      return '<article class="pos"><div class="top"><h3>' + esc(p.protocol) + '</h3><span class="kind">' + esc(p.kind) + "</span></div>" +
+        '<div class="amt">' + amt + "</div>" + val +
+        '<div class="tok">' + esc(p.name || p.sym) + " · " + esc(p.chain.name) + '</div><a href="' + esc(p.link) + '" target="_blank" rel="noopener" class="sub">Open in explorer</a></article>';
+    }).join("") : '<div class="empty" style="grid-column:1/-1">No protocol tokens with stablecoins found. The wallet either has no locked stablecoins or holds them in a protocol that does not issue a token (see Limitations).</div>';
+  }
+  function fig(v, l) { return '<div class="fig"><b>' + v + "</b><span>" + esc(l) + "</span></div>"; }
+
+  // Povijest se računa unatrag od trenutnog stanja, pa vrijedi i kad nije dohvaćena cijela povijest.
+  function series(r) {
+    var now = Date.now() / 1000, total = 0;
+    r.holdings.forEach(function (h) { if (!EUR[h.sym]) total += h.bal; });
+    var ev = r.events.filter(function (e) { return !EUR[e.sym]; }).sort(function (a, b) { return b.ts - a.ts; });
+    var pts = [{ t: now, v: total }], v = total;
+    ev.forEach(function (e) { pts.push({ t: e.ts, v: v, e: e }); v -= e.d; pts.push({ t: e.ts, v: Math.max(0, v) }); });
+    pts.push({ t: ev.length ? ev[ev.length - 1].ts - 86400 * 3 : now - 86400 * 30, v: Math.max(0, v) });
+    return pts.reverse();
+  }
+  function nice(max) {
+    if (max <= 0) return { max: 1, step: 0.25 };
+    var raw = max / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    var step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+    return { max: Math.ceil(max / step) * step, step: step };
+  }
+  function axisMoney(v) { return v >= 1e9 ? nf0.format(v / 1e9) + " bn" : v >= 1e6 ? nf0.format(v / 1e6) + " M" : v >= 1e3 ? nf0.format(v / 1e3) + " k" : nf0.format(v); }
+  function drawChart(r) {
+    var pts = series(r), W = Math.max(300, Math.round($("chart").clientWidth || 800)), H = W < 500 ? 200 : 240, L = 56, R = 14, T = 12, B = 28;
+    var t0 = pts[0].t, t1 = pts[pts.length - 1].t; if (t1 <= t0) t1 = t0 + 1;
+    var vmax = Math.max.apply(null, pts.map(function (p) { return p.v; })), n = nice(vmax * 1.05);
+    var x = function (t) { return L + (t - t0) / (t1 - t0) * (W - L - R); };
+    var y = function (v) { return T + (1 - v / n.max) * (H - T - B); };
+    var s = '<svg class="hist" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Total stablecoin balance over time">';
+    for (var g = 0; g <= n.max + 1e-9; g += n.step) s += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g) + '" y2="' + y(g) + '"/><text x="' + (L - 8) + '" y="' + (y(g) + 4) + '" text-anchor="end">' + axisMoney(g) + "</text>";
+    var span = t1 - t0, ticks = W < 500 ? 2 : 5;
+    for (var i = 0; i <= ticks; i++) { var tt = t0 + span * i / ticks; s += '<text x="' + x(tt) + '" y="' + (H - 8) + '" text-anchor="' + (i === 0 ? "start" : i === ticks ? "end" : "middle") + '">' + df.format(new Date(tt * 1000)) + "</text>"; }
+    var d = pts.map(function (p, k) { return (k ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.v).toFixed(1); }).join(" ");
+    s += '<path class="area" d="' + d + " L" + x(t1) + " " + y(0) + " L" + x(t0) + " " + y(0) + 'Z"/><path class="line" d="' + d + '"/>';
+    s += '<line class="cross" id="cross" y1="' + T + '" y2="' + (H - B) + '" x1="-10" x2="-10"/><circle class="dot" id="cdot" r="4" cx="-10" cy="-10"/>';
+    s += '<circle class="dot" r="4" cx="' + x(t1) + '" cy="' + y(pts[pts.length - 1].v) + '"/>';
+    s += '<rect id="hit" x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + H + '" fill="transparent"/></svg>';
+    $("chart").innerHTML = s;
+    $("readout").textContent = "Today: " + money(pts[pts.length - 1].v);
+    var svg = $("chart").firstChild;
+    function at(evt) {
+      var rect = svg.getBoundingClientRect(), px = (evt.clientX - rect.left) / rect.width * W;
+      var t = t0 + (px - L) / (W - L - R) * (t1 - t0), v = pts[0].v;
+      for (var k = 0; k < pts.length; k++) { if (pts[k].t <= t) v = pts[k].v; else break; }
+      var cx = Math.max(L, Math.min(W - R, px));
+      $("cross").setAttribute("x1", cx); $("cross").setAttribute("x2", cx);
+      $("cdot").setAttribute("cx", cx); $("cdot").setAttribute("cy", y(v));
+      $("readout").textContent = df.format(new Date(Math.min(t1, Math.max(t0, t)) * 1000)) + ": " + money(v);
+    }
+    svg.addEventListener("pointermove", at);
+    svg.addEventListener("pointerleave", function () { $("cross").setAttribute("x1", -10); $("cross").setAttribute("x2", -10); $("cdot").setAttribute("cx", -10); $("readout").textContent = "Today: " + money(pts[pts.length - 1].v); });
+  }
+
+  // ---------- Pokretanje ----------
+  function statusFn() {
+    var box = $("progress"); box.innerHTML = ""; box.hidden = false;
+    var rows = {};
+    return function (name, text, kind) {
+      if (!rows[name]) { rows[name] = document.createElement("div"); rows[name].className = "row"; box.appendChild(rows[name]); }
+      rows[name].innerHTML = "<b>" + esc(name) + '</b><span class="st ' + (kind || "") + '">' + esc(text) + "</span>";
+    };
+  }
+  function kindOf(a) {
+    if (/^0x[0-9a-fA-F]{40}$/.test(a)) return "evm";
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a)) return "sol";
+    return null;
+  }
+  var busy = false;
+  $("form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var a = $("addr").value.trim(), k = kindOf(a);
+    if (!k) { $("hint").textContent = "That is not a valid address. An EVM address starts with 0x and has 42 characters; a Solana address has 32 to 44 characters without 0, O, I and l."; return; }
+    if (busy) return;
+    busy = true; $("go").disabled = true;
+    try { localStorage.setItem("wc-addr", a); } catch (e) {}
+    var status = statusFn();
+    (k === "evm" ? checkEvm(a, status) : checkSolana(a, status)).then(function (r) { render(a, r); }).catch(function (e) { status("Error", errText(e, k === "evm" ? ES : SOL), "err"); })
+      .then(function () { busy = false; $("go").disabled = false; });
+  });
+  try { var saved = localStorage.getItem("wc-addr"); if (saved) $("addr").value = saved; } catch (e) {}
+
+})();
+</script>

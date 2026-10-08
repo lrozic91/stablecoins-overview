@@ -1,0 +1,549 @@
+<title>Stablecoins: Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (max 980px), sticky section nav, figures first, then chart, then reference tables */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #14211f;
+  --muted: #5b6b68;
+  --line: #dbe2e1;
+  --accent: #0f6e63;
+  --accent-soft: #d7ece8;
+  --bar-l1: #a9b6b3;
+  --bar-l2: #0f6e63;
+  --warn: #9a5b00;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1615; --surface: #162020; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+    --accent: #5cc9b8; --accent-soft: #1d3632; --bar-l1: #4b5a58; --bar-l2: #5cc9b8; --warn: #e3a84d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1615; --surface: #162020; --ink: #e4eceb; --muted: #94a5a2; --line: #2a3735;
+  --accent: #5cc9b8; --accent-soft: #1d3632; --bar-l1: #4b5a58; --bar-l2: #5cc9b8; --warn: #e3a84d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-family: var(--f-data); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+header.hero { padding-block: 48px 28px; display: grid; gap: 14px; }
+header.hero .lead { font-size: 1.15rem; color: var(--muted); }
+
+nav.sections { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+nav.sections ul { list-style: none; margin: 0 auto; max-width: 980px; padding-inline: 20px; padding-block: 10px; display: flex; gap: 18px; overflow-x: auto; white-space: nowrap; }
+nav.sections a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; }
+nav.sections a:hover { color: var(--ink); }
+
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; margin-block: 28px 8px; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.fig b { font-family: var(--f-display); font-size: 1.6rem; white-space: nowrap; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.fig span { color: var(--muted); font-size: 0.92rem; }
+
+section { padding-block: 44px 0; display: grid; gap: 16px; scroll-margin-top: 56px; }
+section > p.intro { font-size: 1.05rem; }
+
+.chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 14px; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.88rem; background: transparent; color: var(--muted); border: 0; padding: 6px 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.legend { display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.bars { display: grid; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 0.9rem; }
+.bar-row .name { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar { height: 16px; border-radius: 2px; background: var(--bar-l1); min-width: 2px; flex: none; }
+.bar.l2 { background: var(--bar-l2); }
+.bar-track .val { font-family: var(--f-data); font-size: 0.8rem; white-space: nowrap; }
+.bar-row .dom { font-family: var(--f-data); font-size: 0.78rem; color: var(--muted); text-align: right; }
+.caption { font-size: 0.82rem; color: var(--muted); }
+.eras { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 2px solid var(--line); }
+.eras li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 4px 20px; padding-block: 12px; padding-left: 18px; position: relative; }
+.eras li::before { content: ""; position: absolute; left: -6px; top: 19px; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); }
+.eras .yr { font-family: var(--f-data); font-size: 0.85rem; color: var(--accent); padding-top: 3px; white-space: nowrap; }
+.eras h3 { margin-bottom: 4px; }
+.eras p { font-size: 0.95rem; }
+@media (max-width: 560px) { .eras li { grid-template-columns: minmax(0, 1fr); } }
+
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 640px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-data); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .sym { font-family: var(--f-data); font-weight: 500; }
+.chip { display: inline-block; font-size: 0.75rem; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); white-space: nowrap; }
+.chip.warn { color: var(--warn); }
+
+.concepts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.concept { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.concept p { font-size: 0.93rem; color: var(--muted); }
+
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; max-width: 72ch; }
+.note { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; max-width: 72ch; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 0.85rem; color: var(--muted); display: grid; gap: 8px; }
+
+@media (max-width: 560px) {
+  .bar-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .bar-row .dom { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar { transition: width 0.35s ease; }
+}
+</style>
+<style>
+:root { --c-usdt:#2a9d7f; --c-usdc:#2f6fd6; --c-usde:#3c4a48; --c-sky:#d08a1c; --c-x:#8a5cc7; --c-y:#c2577a; --c-rest:#cfd8d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-usdt:#4cc3a2; --c-usdc:#6d9cf0; --c-usde:#b8c6c3; --c-sky:#e8a94a; --c-x:#b08ae6; --c-y:#e483a3; --c-rest:#3a4846; } }
+:root[data-theme="dark"] { --c-usdt:#4cc3a2; --c-usdc:#6d9cf0; --c-usde:#b8c6c3; --c-sky:#e8a94a; --c-x:#b08ae6; --c-y:#e483a3; --c-rest:#3a4846; }
+.nets { display: grid; gap: 14px; }
+.net { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 12px; }
+.net-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; }
+.net-head h3 { font-size: 1.35rem; font-weight: 700; }
+.net-head .total { margin-left: auto; font-family: var(--f-display); font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; font-size: 0.9rem; }
+.facts div { display: grid; gap: 2px; }
+.facts dt { font-family: var(--f-data); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; }
+.stack { display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--c-rest); }
+.stack span { display: block; height: 100%; }
+.mix { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; }
+.mix li { display: inline-flex; align-items: center; gap: 6px; }
+.mix i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.mix b { font-family: var(--f-data); font-weight: 500; }
+.mix .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+.net p.say { font-size: 0.95rem; color: var(--ink); }
+.bar-row { grid-template-columns: 130px minmax(0, 1fr) 0; }
+@media (max-width: 560px) { .bar-row { grid-template-columns: 96px minmax(0, 1fr); } .net-head .total { margin-left: 0; width: 100%; } }
+</style>
+<style>
+/* Soft colour layer: tinted ground, pastel hero, one tint per figure, one hue per network */
+:root {
+  --bg: #eef4f2; --surface: #ffffff;
+  --hero-a: #d9eee8; --hero-b: #dde7f7; --hero-ink: #12302b;
+  --t1: #dcefe8; --t1-ink: #17715f; --t2: #e1e9f8; --t2-ink: #2c58a8;
+  --t3: #ece4f6; --t3-ink: #6a47a3; --t4: #f8e9da; --t4-ink: #9a5a14;
+  --n-eth: #6272c9; --n-sol: #9a6fd6; --n-base: #2f6fd6; --n-arb: #2d8fd0; --n-hood: #3a9c62;
+  --thead: #e6f0ed; --h2: #17594f;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1615; --surface: #162120;
+  --hero-a: #16302b; --hero-b: #1a2540; --hero-ink: #e4f0ed;
+  --t1: #173029; --t1-ink: #6fd6bd; --t2: #1a2742; --t2-ink: #8fb2f2; --t3: #2a2140; --t3-ink: #c0a2ef; --t4: #33261a; --t4-ink: #eab274;
+  --n-eth: #8b98e6; --n-sol: #b996ec; --n-base: #6d9cf0; --n-arb: #63b3e6; --n-hood: #6cc995;
+  --thead: #1b2a28; --h2: #7fd3c3;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f1615; --surface: #162120;
+  --hero-a: #16302b; --hero-b: #1a2540; --hero-ink: #e4f0ed;
+  --t1: #173029; --t1-ink: #6fd6bd; --t2: #1a2742; --t2-ink: #8fb2f2; --t3: #2a2140; --t3-ink: #c0a2ef; --t4: #33261a; --t4-ink: #eab274;
+  --n-eth: #8b98e6; --n-sol: #b996ec; --n-base: #6d9cf0; --n-arb: #63b3e6; --n-hood: #6cc995;
+  --thead: #1b2a28; --h2: #7fd3c3;
+}
+header.hero { margin-top: 24px; padding: 32px clamp(18px, 4vw, 36px); border-radius: 10px; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); }
+header.hero .lead, header.hero .eyebrow { color: var(--hero-ink); opacity: 0.8; }
+.fig { border: 0; }
+.fig.t1 { background: var(--t1); } .fig.t1 b { color: var(--t1-ink); }
+.fig.t2 { background: var(--t2); } .fig.t2 b { color: var(--t2-ink); }
+.fig.t3 { background: var(--t3); } .fig.t3 b { color: var(--t3-ink); }
+.fig.t4 { background: var(--t4); } .fig.t4 b { color: var(--t4-ink); }
+.fig span { color: var(--hero-ink); opacity: 0.75; }
+section h2 { color: var(--h2); }
+th { background: var(--thead); }
+.net { border-top: 4px solid var(--nc); padding-top: 0; overflow: hidden; }
+.net-head { margin-inline: -18px; padding: 14px 18px; background: color-mix(in srgb, var(--nc) 12%, var(--surface)); }
+.net-head h3, .net-head .total { color: var(--nc); }
+.net[data-n="eth"] { --nc: var(--n-eth); } .net[data-n="sol"] { --nc: var(--n-sol); } .net[data-n="base"] { --nc: var(--n-base); }
+.net[data-n="arb"] { --nc: var(--n-arb); } .net[data-n="hood"] { --nc: var(--n-hood); }
+.chart-card { background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--t1) 40%, var(--surface))); }
+</style>
+<style>
+.defi { display: grid; gap: 16px; }
+.dnet { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--nc); border-radius: 6px; overflow: hidden; display: grid; }
+.dnet[data-n="eth"] { --nc: var(--n-eth); } .dnet[data-n="sol"] { --nc: var(--n-sol); } .dnet[data-n="base"] { --nc: var(--n-base); }
+.dnet[data-n="arb"] { --nc: var(--n-arb); } .dnet[data-n="hood"] { --nc: var(--n-hood); }
+.dnet-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 18px; background: color-mix(in srgb, var(--nc) 12%, var(--surface)); }
+.dnet-head h3 { font-size: 1.3rem; font-weight: 700; color: var(--nc); }
+.dnet-head .tvl { margin-left: auto; font-size: 0.92rem; color: var(--muted); }
+.dnet-head .tvl b { font-family: var(--f-display); font-size: 1.2rem; color: var(--nc); font-variant-numeric: tabular-nums; }
+.uses { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 10px; padding: 16px 18px 6px; }
+.use { border-radius: 6px; padding: 10px 12px; background: color-mix(in srgb, var(--nc) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--nc) 22%, var(--line)); display: grid; gap: 3px; align-content: start; }
+.use b { font-size: 0.92rem; }
+.use span { font-size: 0.84rem; color: var(--muted); }
+.dnet .table-wrap { border: 0; border-radius: 0; margin: 10px 0 0; }
+.dnet table { min-width: 680px; }
+.dnet td.cat { white-space: nowrap; }
+.cat-chip { display: inline-block; font-size: 0.74rem; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--nc) 14%, var(--surface)); white-space: nowrap; }
+.dnet .foot { padding: 10px 18px 14px; font-size: 0.82rem; color: var(--muted); }
+</style>
+<style>
+.pies { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; }
+.pie-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.pie-card h3 { font-size: 1rem; font-weight: 600; }
+.pie { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+.pie svg { flex: none; width: 150px; height: 150px; }
+.pie svg path { stroke: var(--surface); stroke-width: 1.5; }
+.pie svg path:hover { opacity: 0.85; }
+.pie .ctr1 { font-family: var(--f-display); font-weight: 700; font-size: 14px; fill: var(--ink); }
+.pie .ctr2 { font-size: 9.5px; fill: var(--muted); }
+.pie ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.86rem; min-width: 0; flex: 1 1 200px; max-width: 360px; }
+.pie li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.pie li i { width: 10px; height: 10px; border-radius: 2px; }
+.pie li .v { font-family: var(--f-data); font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dnet .pie { padding: 4px 18px 0; }
+.dnet .pie-note { padding: 6px 18px 4px; font-size: 0.8rem; color: var(--muted); }
+</style>
+<style>
+.bmap { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 12px; }
+.bmap-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.bmap-head h3 { font-size: 1.15rem; font-weight: 700; }
+.bmap svg { width: 100%; height: auto; display: block; }
+.bmap .chain { stroke-width: 2; }
+.bmap .bub { stroke: var(--surface); stroke-width: 1; }
+.bmap .bub:hover { opacity: 0.85; }
+.bmap text { pointer-events: none; }
+.bmap .cl { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
+.bmap .cv { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }
+.bmap .bl { font-size: 11px; font-weight: 600; fill: #fff; }
+.bmap .bv { font-family: var(--f-data); font-size: 9.5px; fill: #fff; opacity: 0.9; }
+.bmap .legend { flex-wrap: wrap; }
+</style>
+<nav class="sections" aria-label="Sections">
+  <ul>
+    <li><a href="#kratko">Brief history</a></li>
+    <li><a href="#mape">Maps</a></li>
+    <li><a href="#povijest">History</a></li>
+    <li><a href="#peg">Peg</a></li>
+    <li><a href="#usporedba">Comparison</a></li>
+    <li><a href="#mreze">Networks</a></li>
+    <li><a href="#defi">DeFi</a></li>
+    <li><a href="#stablecoini">Stablecoins</a></li>
+    <li><a href="#pojmovi">Concepts</a></li>
+    <li><a href="#regulativa">Regulation and risks</a></li>
+    <li><a href="#izvori">Sources</a></li>
+  </ul>
+</nav>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">As of 7 October 2026 · data: DefiLlama</div>
+    <h1>Stablecoins on Ethereum, Solana, Base, Arbitrum and Robinhood Chain</h1>
+    <p class="lead">How many stablecoins each of the five networks holds, which stablecoin dominates on it and which token powers the network.</p>
+    <div class="figures">
+      <div class="fig t1"><b class="num">173.4 bn $</b><span>in stablecoins on these five networks</span></div>
+      <div class="fig t2"><b class="num">56%</b><span>of the total market of 307.8 bn $</span></div>
+      <div class="fig t3"><b class="num">84%</b><span>of that 173 bn $ is on Ethereum alone</span></div>
+      <div class="fig t4"><b class="num">USDC</b><span>dominates on Solana, Base and Arbitrum</span></div>
+    </div>
+  </header>
+
+  <section id="kratko">
+    <h2>A brief history of stablecoins</h2>
+    <p class="intro">A stablecoin is a token whose value is pegged to the dollar or another currency. In twelve years it has grown from an experiment on Bitcoin into a 307.8 bn $ market.</p>
+    <ol class="eras">
+      <li><span class="yr">2014 – 2017</span><div><h3>Beginnings</h3><p>In 2014 Tether issues the first dollar token on Bitcoin (the Omni layer), backed by dollars in a bank. Exchanges use it instead of dollars because banks are reluctant to open accounts for them. In December 2017 MakerDAO launches DAI, the first decentralized stablecoin backed by cryptocurrency.</p></div></li>
+      <li><span class="yr">2018 – 2019</span><div><h3>A regulated dollar on-chain</h3><p>In 2018 Circle and Coinbase launch USDC with monthly reserve attestations, followed by Paxos and Gemini. In 2019 Facebook announces Libra, which for the first time draws the attention of governments and central banks.</p></div></li>
+      <li><span class="yr">2020 – 2021</span><div><h3>DeFi and rapid growth</h3><p>Lending, trading and yield on Ethereum need a stable unit. Total supply grows from about 5 bn $ in early 2020 to more than 150 bn $ by the end of 2021.</p></div></li>
+      <li><span class="yr">2022 – 2023</span><div><h3>Crises and trust</h3><p>In May 2022 Terra's algorithmic UST collapses and about 18 bn $ vanishes. In 2023 a regulator halts BUSD issuance, and USDC briefly drops to 0.88 $ after the failure of Silicon Valley Bank. The market shrinks for the first time.</p></div></li>
+      <li><span class="yr">2024 – today</span><div><h3>Laws and institutions</h3><p>The EU has applied MiCA since June 2024, and in July 2025 the US passes the GENIUS Act. PayPal, Ripple, Paxos and tokenized bond funds enter, while Ethena and Sky introduce yield-bearing stablecoins. Supply passes 300 bn $.</p></div></li>
+    </ol>
+    <p class="caption">A detailed chart of supply over time is in the <a href="#povijest">History</a> section, and depegs are explained in the <a href="#peg">Peg</a> section.</p>
+  </section>
+
+  <section id="mape">
+    <h2>Network maps</h2>
+    <p class="intro">The large circle is the network; the small circles inside it are stablecoins or DeFi protocols. A circle's area corresponds to the amount. Hover over a circle for the exact amount.</p>
+    <div class="seg" role="group" aria-label="Network size" style="justify-self:start">
+      <button type="button" id="bm-real" aria-pressed="true">Actual network size</button>
+      <button type="button" id="bm-eq" aria-pressed="false">Equal size</button>
+    </div>
+    <div class="bmap">
+      <div class="bmap-head"><h3>Stablecoins by network</h3><div class="legend" id="bm1-leg"></div></div>
+      <div id="bm1"></div>
+      <div class="caption">Stablecoin supply on the network, DefiLlama, 7 Oct 2026. “Others” are smaller stablecoins on that network.</div>
+    </div>
+    <div class="bmap">
+      <div class="bmap-head"><h3>DeFi protocols by network</h3><div class="legend" id="bm2-leg"></div></div>
+      <div id="bm2"></div>
+      <div class="caption">TVL of the largest protocols on the network, DefiLlama, 7 Oct 2026. Risk curators are excluded because they overlap with Morpho. Network size here is the sum of the protocols shown.</div>
+    </div>
+  </section>
+
+<style>
+/* Povijest: jedna serija (ukupna ponuda) na linearnoj vremenskoj osi, ispod nje lenta događaja na istoj osi */
+.hist-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 16px 12px; display: grid; gap: 10px; }
+.hist-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+.hist-read { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); min-height: 1.4em; }
+.hist-read b { color: var(--ink); font-weight: 500; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.82rem; padding: 4px 10px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); }
+#hist-svg { width: 100%; display: block; touch-action: pan-y; }
+#hist-svg text { font-family: var(--f-data); fill: var(--muted); }
+#hist-svg .grid { stroke: var(--line); stroke-width: 1; }
+#hist-svg .area { fill: var(--accent); fill-opacity: 0.16; }
+#hist-svg .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+#hist-svg .ev { stroke: var(--muted); stroke-opacity: 0.45; stroke-dasharray: 2 3; }
+#hist-svg .evdot { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+#hist-svg .evdot.bad { stroke: var(--warn); }
+#hist-svg .evnum { fill: var(--ink); font-size: 10px; font-weight: 500; text-anchor: middle; dominant-baseline: central; }
+#hist-svg .cross { stroke: var(--ink); stroke-opacity: 0.35; }
+#hist-svg .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+#hist-svg .endlbl { fill: var(--ink); font-weight: 500; }
+.hist-ev { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 8px 18px; }
+.hist-ev li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; font-size: 0.92rem; }
+.hist-ev .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--accent); display: grid; place-items: center; font-family: var(--f-data); font-size: 0.72rem; }
+.hist-ev .n.bad { border-color: var(--warn); }
+.hist-ev time { font-family: var(--f-data); font-size: 0.78rem; color: var(--muted); display: block; }
+.hist-note { font-size: 0.82rem; color: var(--muted); }
+</style>
+  <section id="povijest">
+    <div class="eyebrow">History</div>
+    <h2>How total stablecoin supply grew, 2014 – 2026</h2>
+    <p class="intro">From a few million dollars of USDT in 2014 to about 308 bn $ today. The biggest jump came in 2020 and 2021, and the only major decline came in 2022 after the collapse of Terra's UST.</p>
+    <div class="hist-card">
+      <div class="hist-top">
+        <div class="hist-read" id="hist-read" aria-live="polite"></div>
+        <div class="seg" role="group" aria-label="Scale">
+          <button type="button" data-s="lin" aria-pressed="true">Linear scale</button>
+          <button type="button" data-s="log" aria-pressed="false">Logarithmic</button>
+        </div>
+      </div>
+      <svg id="hist-svg" role="img" aria-label="Total stablecoin supply from 2014 to 2026 with key events marked"></svg>
+      <ol class="hist-ev" id="hist-ev"></ol>
+      <p class="hist-note">Total supply of all stablecoins pegged to the dollar and other currencies, across all networks combined. Values are approximate, at the end of each period. Up to 2019 they are based on the supply of USDT, USDC, TUSD, PAX and DAI, and from 2020 on DefiLlama data. Last point: DefiLlama, 7 Oct 2026.</p>
+    </div>
+  <style>
+/* Top 10 na jednom grafu: linije po stablecoinu, fiksni redoslijed boja, 9. serija neutralna isprekidana */
+.mc { --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --c8: #e34948; --c9: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; } }
+:root[data-theme="dark"] .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; }
+.mc-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; margin-top: 18px; }
+.mc-legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-legend button { font: inherit; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.mc-legend button i { width: 16px; height: 0; border-top: 3px solid var(--sc); border-radius: 2px; }
+.mc-legend button i.dash { border-top-style: dashed; }
+.mc-legend button[aria-pressed="false"] { color: var(--muted); opacity: 0.55; }
+.mc-legend button span { font-family: var(--f-data); font-size: 0.75rem; color: var(--muted); }
+#mc-svg { width: 100%; display: block; touch-action: pan-y; }
+#mc-svg text { font-family: var(--f-data); fill: var(--muted); }
+#mc-svg .grid { stroke: var(--line); }
+#mc-svg .s { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; transition: opacity .15s; }
+#mc-svg .s.dash { stroke-dasharray: 7 4; }
+#mc-svg .band { opacity: 0.18; pointer-events: none; }
+#mc-svg .s { pointer-events: none; }
+#mc-svg .lane-name { font-family: var(--f-display); font-size: 13px; font-weight: 700; fill: var(--ink); }
+#mc-svg .lane-max { font-size: 10px; }
+#mc-svg .s.dim { opacity: 0.12; }
+#mc-svg .cross { stroke: var(--ink); stroke-opacity: 0.35; }
+#mc-svg .end { font-size: 11px; font-weight: 500; fill: var(--ink); }
+.mc-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 14px rgba(0,0,0,.12); min-width: 170px; display: none; z-index: 3; }
+.mc-tip b { display: block; font-family: var(--f-data); font-weight: 500; margin-bottom: 4px; }
+.mc-tip div { display: grid; grid-template-columns: 12px 1fr auto; gap: 6px; align-items: center; font-family: var(--f-data); }
+.mc-tip div i { width: 10px; height: 0; border-top: 2.5px solid var(--sc); }
+.mc-tip div i.dash { border-top-style: dashed; }
+.mc-tip div span:last-child { text-align: right; }
+.mc-wrap { position: relative; }
+/* Detaljni prikaz jednog stablecoina (dijalog) */
+#mc-svg .hit { fill: transparent; cursor: pointer; }
+#mc-svg .hit:hover { fill: var(--ink); fill-opacity: 0.04; }
+#mc-svg .lane-name { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); }
+dialog.det { width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); border: 1px solid var(--line); border-radius: 8px; padding: 0; background: var(--bg); color: var(--ink); }
+dialog.det::backdrop { background: rgba(0,0,0,.45); }
+.det-in { padding: 18px 18px 22px; display: grid; gap: 14px; }
+.det-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.det-top h3 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+.det-top h3 i { width: 18px; height: 0; border-top: 4px solid var(--sc); border-radius: 2px; }
+.det-top p { color: var(--muted); font-size: 0.9rem; }
+.det-x { font: inherit; font-size: 1.4rem; line-height: 1; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; width: 36px; height: 36px; cursor: pointer; }
+.det-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.det-figs div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; }
+.det-figs b { font-family: var(--f-display); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.det-figs span { font-size: 0.8rem; color: var(--muted); }
+.det-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 6px; position: relative; }
+.det-card h4 { margin: 0; font-size: 0.95rem; font-family: var(--f-display); }
+.det-card svg { width: 100%; display: block; touch-action: pan-y; }
+.det-card svg text { font-family: var(--f-data); fill: var(--muted); font-size: 11px; }
+.det-card svg .grid { stroke: var(--line); }
+.det-card svg .zero { stroke: var(--muted); }
+.det-card svg .cross { stroke: var(--ink); stroke-opacity: .35; }
+.det-read { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); min-height: 1.4em; }
+.det-read b { color: var(--ink); font-weight: 500; }
+.det-tbl { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.det-tbl table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.det-tbl th, .det-tbl td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; font-family: var(--f-data); white-space: nowrap; }
+.det-tbl th:first-child, .det-tbl td:first-child { text-align: left; }
+.det-tbl th { position: sticky; top: 0; background: var(--surface); font-family: var(--f-body); color: var(--muted); font-weight: 500; }
+.det-tbl .up { color: var(--ink); }
+.det-tbl .dn { color: var(--warn); }
+
+@media (max-width: 560px) { .mc-legend button span { display: none; } .mc-legend button { padding: 3px 8px; } }
+</style>
+    <div class="mc-head">
+      <h3>Top 10 stablecoins over time (excluding USYC)</h3>
+      <div class="seg" role="group" aria-label="Scale for the per-stablecoin chart">
+        <button type="button" data-y="lanes" aria-pressed="true">Lanes</button>
+        <button type="button" data-y="log" aria-pressed="false">All together (log)</button>
+        <button type="button" data-y="lin" aria-pressed="false">All together (linear)</button>
+      </div>
+    </div>
+    <p class="intro"><b>Click a lane or a stablecoin's name for a detailed view</b> with supply in M $, monthly changes and a table. Each stablecoin has its own lane, so the lines don't cross, and all lanes share the same time axis. A lane starts when the stablecoin appeared, and each has its own scale up to its peak amount (shown on the right). For a direct size comparison, choose “All together”. Click a name in the legend to hide or show it.</p>
+    <div class="hist-card mc">
+      <div class="mc-legend" id="mc-legend"></div>
+      <div class="mc-wrap"><svg id="mc-svg" role="img" aria-label="Supply of the nine largest stablecoins from 2015 to 2026"></svg><div class="mc-tip" id="mc-tip"></div></div>
+    </div>
+    <p class="hist-note">Monthly market capitalization at month-end according to CoinMarketCap, through September 2026. For stablecoins it is practically equal to supply. The tenth largest, Circle's USYC, is not included because it is a tokenized money market fund that CoinMarketCap does not track. DAI is shown from November 2019, when it replaced the first version (SAI) from December 2017. For DAI, CoinMarketCap has shown almost unchanged supply since 2023, so that part should be taken with caution.</p>
+  </section>
+<style>
+/* Peg: po stablecoinu raspon cijene unutar mjeseca (crtica) i cijena na kraju mjeseca (linija), os fiksno 0,85–1,15 $ */
+.peg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 12px; }
+.peg { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 12px 10px; display: grid; gap: 6px; align-content: start; position: relative; }
+.peg-t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.peg-t b { font-family: var(--f-display); font-size: 1.1rem; display: inline-flex; align-items: center; gap: 8px; }
+.peg-t b i { width: 14px; height: 0; border-top: 3px solid var(--sc); border-radius: 2px; }
+.peg-t span { font-size: 0.8rem; color: var(--muted); text-align: right; }
+.peg-read { font-family: var(--f-data); font-size: 0.8rem; color: var(--muted); min-height: 1.3em; }
+.peg-read b { color: var(--ink); font-weight: 500; }
+.peg svg { width: 100%; display: block; touch-action: pan-y; }
+.peg svg text { font-family: var(--f-data); fill: var(--muted); font-size: 10px; }
+.peg svg .grid { stroke: var(--line); }
+.peg svg .one { stroke: var(--muted); stroke-dasharray: 3 3; }
+.peg svg .band { fill: var(--accent-soft); }
+.peg svg .rng { stroke: var(--sc); stroke-opacity: .45; stroke-width: 2; stroke-linecap: round; }
+.peg svg .cl { fill: none; stroke: var(--sc); stroke-width: 2.5; stroke-linejoin: round; }
+.peg svg .clip { fill: var(--warn); }
+.peg svg .ev { fill: var(--surface); stroke: var(--warn); stroke-width: 1.5; }
+.peg svg .evn { fill: var(--ink); font-size: 9px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+.peg svg .cross { stroke: var(--ink); stroke-opacity: .35; }
+.peg ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.peg li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: 0.86rem; line-height: 1.45; }
+.peg li .n { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--warn); display: grid; place-items: center; font-family: var(--f-data); font-size: 0.68rem; margin-top: 2px; }
+.peg li time { font-family: var(--f-data); font-size: 0.76rem; color: var(--muted); margin-right: 6px; }
+.peg li em { font-style: normal; color: var(--muted); }
+.peg .calm { font-size: 0.86rem; color: var(--muted); }
+.peg-key { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--muted); align-items: center; }
+.peg-key i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.peg-key .k1 { width: 16px; border-top: 2.5px solid var(--accent); }
+.peg-key .k2 { width: 2px; height: 14px; background: var(--accent); opacity: .45; }
+.peg-key .k3 { width: 16px; height: 10px; background: var(--accent-soft); }
+.peg-key .k4 { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--warn); }
+</style>
+  <section id="peg">
+    <div class="eyebrow">Peg</div>
+    <h2>How stablecoins held their peg to 1 $</h2>
+    <p class="intro">For each stablecoin, the line shows the month-end price and the vertical tick shows the range from the lowest to the highest price within the month. All charts use the same scale from 0.85 to 1.15 $, so deviations can be compared. Larger depegs are marked with numbers and explained below the chart.</p>
+    <div class="peg-key"><span><i class="k1"></i>month-end price</span><span><i class="k2"></i>lowest and highest price in the month</span><span><i class="k3"></i>±1% around 1 $</span><span><i class="k4"></i>value off the scale</span></div>
+    <div class="peg-grid mc" id="peg-grid"></div>
+    <p class="hist-note">Monthly prices (open, low, high, close) according to CoinMarketCap, through September 2026. The monthly low and high also include brief glitches on individual exchanges and data errors, so the month-end price is a more reliable indicator. Explanations marked as an estimate are not confirmed by a source. Circle's USYC is not included because CoinMarketCap does not track it.</p>
+  </section>
+
+
+  <section id="usporedba">
+    <h2>Supply comparison</h2>
+    <p class="intro">Ethereum has almost nine times as many stablecoins as Solana. The three L2 networks together hold 10.1 bn $, less than Solana alone.</p>
+    <div class="chart-card">
+            <div class="bars" id="bars"></div>
+      <div class="caption">Total stablecoin supply on the network in USD. Source: DefiLlama, 7 Oct 2026.</div>
+    </div>
+    <div class="pies">
+      <div class="pie-card"><h3>Network share of the whole stablecoin market</h3><div id="pie-nets"></div></div>
+      <div class="pie-card"><h3>Stablecoin share of the whole market</h3><div id="pie-coins"></div></div>
+    </div>
+  </section>
+
+  <section id="mreze">
+    <h2>Networks</h2>
+    <p class="intro">The chart shows the stablecoin mix on the network; grey is the remainder of smaller stablecoins. Each stablecoin has the same colour on every network.</p>
+    <div class="nets" id="nets"></div>
+  </section>
+
+  <section id="defi">
+    <h2>DeFi protocols and stablecoin use</h2>
+    <p class="intro">Stablecoins play a different main role on each network. On Ethereum it is lending and yield, on Solana trading, on Base and Robinhood Chain borrowing via Morpho, and on Arbitrum lending and derivatives.</p>
+    <div class="defi" id="defi-list"></div>
+    <p class="caption">TVL (total value locked) per protocol on that network, DefiLlama, 7 Oct 2026. The list shows the largest protocols, not all of them: according to DefiLlama, Robinhood Chain has 307 protocols and the other networks several hundred. Risk curators (Steakhouse, Gauntlet) manage vaults on Morpho, so their TVL overlaps with Morpho's.</p>
+    <p class="caption">Types of services and the current highest stablecoin yields: <a href="/en/yields">Stablecoin yields</a>.</p>
+  </section>
+
+  <section id="stablecoini">
+    <h2>Stablecoins on these networks</h2>
+    <p class="intro">USDT and USDC together make up 84% of the whole market. The others in the table matter on at least one of the five networks.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stablecoin</th><th>Issuer</th><th>Type</th><th class="r">Total supply</th><th>Where among the five networks</th></tr></thead>
+        <tbody>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/tether">USDT</a></td><td>Tether</td><td>Fiat-backed</td><td class="r">184.2 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/usd-coin">USDC</a></td><td>Circle</td><td>Fiat-backed, MiCA</td><td class="r">74.3 bn $</td><td>All except Robinhood Chain; native on all L2s</td></tr>
+          <tr><td class="sym">USDS / DAI</td><td>Sky (formerly Maker)</td><td>Crypto-backed</td><td class="r">11.6 bn $</td><td>Ethereum, a little on Arbitrum</td></tr>
+          <tr><td class="sym">USDe</td><td>Ethena</td><td>Synthetic, delta-neutral</td><td class="r">5.0 bn $</td><td>Ethereum, Base, Robinhood Chain</td></tr>
+          <tr><td class="sym">USD1</td><td>World Liberty Financial</td><td>Fiat-backed</td><td class="r">4.5 bn $</td><td>Solana</td></tr>
+          <tr><td class="sym">USDG</td><td>Paxos (Global Dollar Network)</td><td>Fiat-backed</td><td class="r">3.1 bn $</td><td>Robinhood Chain (66% of the network)</td></tr>
+          <tr><td class="sym">PYUSD</td><td>PayPal / Paxos</td><td>Fiat-backed</td><td class="r">2.9 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td class="sym">BUIDL</td><td>BlackRock / Securitize</td><td>Tokenized money market fund</td><td class="r">2.2 bn $</td><td>Solana, Ethereum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/eurc">EURC</a></td><td>Circle</td><td>Fiat-backed, euro, MiCA</td><td class="r">≈ 421 M €</td><td>Ethereum 304 M €, Base 57 M €, Solana 44 M €</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="pojmovi">
+    <h2>Basic concepts</h2>
+    <div class="concepts">
+      <div class="concept"><h3>L1 (Layer 1)</h3><p>A standalone blockchain with its own consensus and security. Here these are Ethereum and Solana.</p></div>
+      <div class="concept"><h3>L2 (Layer 2)</h3><p>A network that executes transactions outside Ethereum and publishes data and proofs on it. Base, Arbitrum and Robinhood Chain are optimistic rollups with a challenge period.</p></div>
+      <div class="concept"><h3>Native token</h3><p>Pays fees (gas) and is used for staking or governance. All three L2 networks charge gas in ETH; ARB is used only for voting in the Arbitrum DAO.</p></div>
+      <div class="concept"><h3>Native and bridged tokens</h3><p>Native USDC is issued by Circle directly on the network. Bridged USDC.e is a copy that depends on the security of the bridge.</p></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stablecoin type</th><th>How it holds its value</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td>Fiat-backed</td><td>The issuer holds cash and short-term government bonds 1:1</td><td>USDT, USDC, PYUSD, USDG, EURC</td></tr>
+          <tr><td>Crypto-backed</td><td>Overcollateralized with crypto assets, managed by a protocol</td><td>DAI, USDS</td></tr>
+          <tr><td>Synthetic</td><td>Crypto collateral combined with short futures positions</td><td>USDe</td></tr>
+          <tr><td>Yield-bearing asset</td><td>Tokenized money market funds; yield goes to holders</td><td>BUIDL</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="regulativa">
+    <h2>Regulation and risks</h2>
+    <p class="intro">For a user in the EU, the most important point is that USDT is not authorized under MiCA, while USDC and EURC are.</p>
+    <ul class="plain">
+      <li><strong>MiCA (EU):</strong> stablecoin rules have applied since 30 June 2024. Issuers need a license in the EU, so major exchanges have restricted USDT for users from the EEA. <span class="chip warn">from general knowledge</span></li>
+      <li><strong>GENIUS Act (US):</strong> signed on 18 July 2025; introduces a federal license for issuers and 1:1 backing with cash and short-term bonds. <span class="chip warn">from general knowledge</span></li>
+      <li><strong>Issuer risk:</strong> in March 2023 USDC briefly lost its peg when Silicon Valley Bank failed.</li>
+      <li><strong>Protocol risk:</strong> DAI/USDS and USDe depend on collateral value, liquidations and funding rates.</li>
+      <li><strong>L2 network risk:</strong> Base, Arbitrum and Robinhood Chain have a centralized sequencer; withdrawing to Ethereum through the official bridge takes about 7 days.</li>
+      <li><strong>Freezing:</strong> Tether, Circle and Paxos can freeze addresses, which protects against fraud but is also a form of centralization.</li>
+    </ul>
+  </section>
+
+  <footer id="izvori">
+    <div class="eyebrow">Sources</div>
+    <p>Amounts were taken from DefiLlama on 7 October 2026 and change daily. The MiCA and GENIUS Act rules are stated from general knowledge, without checking the current state of implementation.</p>
+    <p><a href="https://defillama.com/stablecoins/chains">Stablecoins by network</a> · <a href="https://defillama.com/stablecoins">List of stablecoins</a> · <a href="https://defillama.com/stablecoins/Ethereum">Ethereum</a> · <a href="https://defillama.com/stablecoins/Solana">Solana</a> · <a href="https://defillama.com/stablecoins/Base">Base</a> · <a href="https://defillama.com/stablecoins/Arbitrum">Arbitrum</a> · <a href="https://defillama.com/stablecoins/Robinhood%20Chain">Robinhood Chain</a> · <a href="https://defillama.com/stablecoin/eurc">EURC</a> · TVL: <a href="https://defillama.com/chain/ethereum">Ethereum</a>, <a href="https://defillama.com/chain/solana">Solana</a>, <a href="https://defillama.com/chain/base">Base</a>, <a href="https://defillama.com/chain/arbitrum">Arbitrum</a>, <a href="https://defillama.com/chain/robinhood-chain">Robinhood Chain</a> · <a href="https://forum.arbitrum.foundation/t/arbitrumdao-factsheet-robinhood-chain-mainnet-launch/31041">Robinhood Chain factsheet (Arbitrum forum)</a></p>
+  </footer>
+</main>
+
+

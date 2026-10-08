@@ -1,0 +1,6 @@
+# Cloudflare Worker "www" (javna stranica). Cloudflare Workers Builds pri svakom pushu na GitHub pokreće `npx wrangler deploy`.
+# Tajne RPC_URL i BLOCKSCOUT_KEY ostaju spremljene u Cloudflareu i ne idu u repozitorij.
+name = "www"
+main = "dist/stablecoini-web.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
