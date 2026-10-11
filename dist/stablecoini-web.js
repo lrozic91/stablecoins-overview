@@ -554,6 +554,11 @@ const SECURITY_HEADERS = {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // Glavna adresa je s www; adresa bez www trajno preusmjerava na nju.
+    if (url.hostname === "stable-l1-chains.mojaradnadomena.com") {
+      url.hostname = "www.stable-l1-chains.mojaradnadomena.com";
+      return Response.redirect(url.toString(), 301);
+    }
     if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
     const path = url.pathname.replace(/\/+$/, "") || "/";
     if (API[path]) {

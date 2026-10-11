@@ -5,7 +5,9 @@ main = "dist/stablecoini-web.js"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
-# Vlastita adresa stranice (domena mojaradnadomena.com je na istom Cloudflare računu).
+# Vlastite adrese stranice (domena mojaradnadomena.com je na istom Cloudflare računu).
+# Glavna je s www, a adresa bez www preusmjerava na nju (src/server.js).
 routes = [
+  { pattern = "www.stable-l1-chains.mojaradnadomena.com", custom_domain = true },
   { pattern = "stable-l1-chains.mojaradnadomena.com", custom_domain = true }
 ]
