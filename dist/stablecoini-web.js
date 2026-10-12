@@ -376,19 +376,19 @@ const ISSUE = "0xcb8241adb0c3fdb35b70c24ce35c5eb0c17af7431c99f827d44a445ca624176
 const ZERO32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const RADAR_CHAINS = [
-  { key: "eth", id: "1", issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
+  { key: "eth", id: "1", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://cloudflare-eth.com"], chunk: 2000, issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6], "0xdc035d45d973e3ec169d2276ddab16f1e407384f": ["USDS", 18],
     "0x6b175474e89094c44da98b954eedeac495271d0f": ["DAI", 18], "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": ["USDe", 18],
     "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
     "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
     "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] } },
-  { key: "base", id: "8453", rpc: "https://mainnet.base.org", blockTime: 2, tokens: {
+  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org"], chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "arb", id: "42161", tokens: {
+  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org"], chunk: 10000, tokens: {
     "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
     "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "hood", id: "4663", tokens: {
+  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org"], chunk: 10000, tokens: {
     "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
     "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
 ];
@@ -411,39 +411,87 @@ async function blockscout(env, chainid, params) {
   return blockscoutGet(BS_INSTANCES[chainid] + "/api?" + new URLSearchParams(params));
 }
 
-// Mreže s javnim RPC-om (Base): mintanja se čitaju izravno iz čvora, bez Blockscouta.
+// Javni RPC čvorovi: mintanja se čitaju izravno iz čvora, bez Blockscouta (koji Workere često ograniči ili blokira).
 async function rpcCall(url, method, params) {
   const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
   const t = await r.text();
   let j;
   try { j = JSON.parse(t); } catch { throw new Error("RPC HTTP " + r.status + ": " + t.slice(0, 160)); }
   if (j.error) throw new Error("RPC: " + (j.error.message || JSON.stringify(j.error)).slice(0, 160));
+  if (j.result === undefined || j.result === null) throw new Error("RPC HTTP " + r.status + ": " + t.slice(0, 160));
   return j.result;
 }
 
+// Isti poziv redom na svaki čvor s popisa, dok jedan ne uspije. Grešku zbog prevelikog raspona blokova vraća odmah.
+const RANGE_ERR = /range|too many|exceed|query returned more|block.*limit|limit.*block/i;
+async function rpcAny(c, method, params, budget) {
+  let last;
+  for (const url of c.rpcs) {
+    if (budget.used >= budget.max) throw new Error("Previše upita u jednoj provjeri");
+    budget.used++;
+    try { return await rpcCall(url, method, params); }
+    catch (e) {
+      last = e;
+      if (method === "eth_getLogs" && RANGE_ERR.test(String(e.message)) && !/rate/i.test(String(e.message))) throw e;
+    }
+  }
+  throw last;
+}
+
+// Logovi za raspon; ako čvor javi da je raspon prevelik, raspon se dijeli na pola.
+async function getLogsSplit(c, filter, from, to, budget, out) {
+  try {
+    const res = await rpcAny(c, "eth_getLogs", [{ ...filter, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }], budget);
+    if (!Array.isArray(res)) throw new Error("RPC: neočekivan odgovor");
+    out.push(...res);
+  } catch (e) {
+    if (to - from < 50 || !RANGE_ERR.test(String(e.message))) throw e;
+    const mid = Math.floor((from + to) / 2);
+    await getLogsSplit(c, filter, from, mid, budget, out);
+    await getLogsSplit(c, filter, mid + 1, to, budget, out);
+  }
+}
+
+async function blockInfo(c, n, budget) {
+  const b = await rpcAny(c, "eth_getBlockByNumber", [typeof n === "number" ? "0x" + n.toString(16) : n, false], budget);
+  return { n: parseInt(b.number, 16), t: parseInt(b.timestamp, 16) };
+}
+
 async function radarChainRpc(c) {
-  const latest = parseInt(await rpcCall(c.rpc, "eth_blockNumber", []), 16);
-  const span = Math.ceil(RADAR_WINDOW_S / c.blockTime);
-  // Javni Base RPC dopušta najviše 500 blokova po eth_getLogs, pa se raspon dijeli na komade.
-  const logs = [];
-  for (let to = latest; to > latest - span; to -= 450) {
-    const from = Math.max(0, to - 449, latest - span + 1);
-    logs.push(...await rpcCall(c.rpc, "eth_getLogs", [{ fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), address: Object.keys(c.tokens), topics: [TRANSFER, ZERO32] }]));
+  const budget = { used: 0, max: 12 };
+  const since = Math.floor(Date.now() / 1000) - RADAR_WINDOW_S;
+  const head = await blockInfo(c, "latest", budget);
+  // Prvi blok prozora: procjena iz prosječnog vremena bloka, uz jednu provjeru i po potrebi korekciju.
+  const probe = await blockInfo(c, Math.max(0, head.n - 1000), budget);
+  const bt = Math.max(0.05, (head.t - probe.t) / Math.max(1, head.n - probe.n));
+  let start = await blockInfo(c, Math.max(0, head.n - Math.ceil((head.t - since) / bt)), budget);
+  if (start.t > since && start.n > 0) {
+    const bt2 = Math.max(0.05, (head.t - start.t) / Math.max(1, head.n - start.n));
+    start = await blockInfo(c, Math.max(0, start.n - Math.ceil((start.t - since) / bt2) - 10), budget);
   }
-  const now = Math.floor(Date.now() / 1000), mints = [];
-  for (const lg of logs) {
-    const tok = c.tokens[String(lg.address).toLowerCase()];
-    if (!tok) continue;
-    let raw;
-    try { raw = BigInt(lg.data && lg.data !== "0x" ? lg.data.slice(0, 66) : "0x0"); } catch { continue; }
-    const amt = Number(raw) / Math.pow(10, tok[1]);
-    if (!(amt > 0)) continue;
-    const b = parseInt(lg.blockNumber, 16);
-    const to = lg.topics && lg.topics[2] ? "0x" + lg.topics[2].slice(26) : "";
-    // Vrijeme bloka procijenjeno iz razmaka blokova (Base: 2 s), da ne treba poziv po bloku.
-    mints.push({ id: c.key + ":" + lg.transactionHash + ":" + parseInt(lg.logIndex, 16), sym: tok[0], amt, to, tx: lg.transactionHash, ts: now - (latest - b) * c.blockTime, blk: b });
+  // Vrijeme bloka procijenjeno između prvog i zadnjeg bloka prozora, da ne treba poziv po bloku.
+  const tsOf = (b) => start.t + (b - start.n) * (head.t - start.t) / Math.max(1, head.n - start.n);
+  const filters = [{ address: Object.keys(c.tokens), topics: [TRANSFER, ZERO32], issue: false }];
+  if (c.issue) filters.push({ address: c.issue, topics: [ISSUE], issue: true });
+  const mints = [];
+  for (const f of filters) {
+    const logs = [];
+    for (let from = start.n; from <= head.n; from += c.chunk) {
+      await getLogsSplit(c, { address: f.address, topics: f.topics }, from, Math.min(head.n, from + c.chunk - 1), budget, logs);
+    }
+    for (const lg of logs) {
+      const tok = f.issue ? ["USDT", 6] : c.tokens[String(lg.address).toLowerCase()];
+      if (!tok) continue;
+      let raw;
+      try { raw = BigInt(lg.data && lg.data !== "0x" ? lg.data.slice(0, 66) : "0x0"); } catch { continue; }
+      const amt = Number(raw) / Math.pow(10, tok[1]);
+      if (!(amt > 0)) continue;
+      const b = parseInt(lg.blockNumber, 16);
+      const to = !f.issue && lg.topics && lg.topics[2] ? "0x" + lg.topics[2].slice(26) : "";
+      mints.push({ id: c.key + ":" + lg.transactionHash + ":" + parseInt(lg.logIndex, 16), sym: tok[0], amt, to, tx: lg.transactionHash, ts: Math.round(tsOf(b)), blk: b });
+    }
   }
-  return { ok: true, block: latest, mints, warnings: [] };
+  return { ok: true, block: head.n, mints, warnings: [] };
 }
 
 async function blockscoutGet(url) {
@@ -508,7 +556,7 @@ async function memo(key, ttlMs, fn) {
 async function apiRadarEvm(env) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   for (const c of RADAR_CHAINS) {
-    try { out.chains[c.key] = c.rpc ? await radarChainRpc(c) : await radarChain(env, c); }
+    try { out.chains[c.key] = c.rpcs ? await radarChainRpc(c) : await radarChain(env, c); }
     catch (e) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 200) }; }
   }
   return out;
