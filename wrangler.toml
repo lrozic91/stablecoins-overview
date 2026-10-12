@@ -8,6 +8,6 @@ workers_dev = true
 # Vlastite adrese stranice (domena mojaradnadomena.com je na istom Cloudflare računu).
 # Glavna je s www, a adresa bez www preusmjerava na nju (src/server.js).
 routes = [
-  { pattern = "www.stablecoins.mojaradnadomena.com", custom_domain = true },
-  { pattern = "stablecoins.mojaradnadomena.com", custom_domain = true }
+  { pattern = "www.stablecoins-overview.mojaradnadomena.com", custom_domain = true },
+  { pattern = "stablecoins-overview.mojaradnadomena.com", custom_domain = true }
 ]
