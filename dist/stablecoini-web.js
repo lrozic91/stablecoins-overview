@@ -376,19 +376,19 @@ const ISSUE = "0xcb8241adb0c3fdb35b70c24ce35c5eb0c17af7431c99f827d44a445ca624176
 const ZERO32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const RADAR_CHAINS = [
-  { key: "eth", id: "1", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://cloudflare-eth.com"], chunk: 2000, issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
+  { key: "eth", id: "1", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth.llamarpc.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"], chunk: 2000, issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6], "0xdc035d45d973e3ec169d2276ddab16f1e407384f": ["USDS", 18],
     "0x6b175474e89094c44da98b954eedeac495271d0f": ["DAI", 18], "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": ["USDe", 18],
     "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
     "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
     "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] } },
-  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org"], chunk: 450, tokens: {
+  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org"], chunk: 10000, tokens: {
+  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], chunk: 10000, budget: 10, tokens: {
     "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
     "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org"], chunk: 5000, budget: 22, tokens: {
+  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://rpc.arrowrpc.com"], chunk: 5000, budget: 14, tokens: {
     "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
     "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
 ];
@@ -424,9 +424,13 @@ async function rpcCall(url, method, params) {
 
 // Isti poziv redom na svaki čvor s popisa, dok jedan ne uspije. Grešku zbog prevelikog raspona blokova vraća odmah.
 const RANGE_ERR = /range|too many|exceed|query returned more|block.*limit|limit.*block/i;
+// Čvorovi se pitaju počevši od nasumičnog, da se opterećenje rasporedi; nakon kruga bez uspjeha kratka pauza i još jedan krug.
 async function rpcAny(c, method, params, budget) {
   let last;
-  for (const url of c.rpcs) {
+  const k = Math.floor(Math.random() * c.rpcs.length);
+  const order = [...c.rpcs.slice(k), ...c.rpcs.slice(0, k)];
+  for (let round = 0; round < 2; round++) for (const [i, url] of order.entries()) {
+    if (round && !i) await sleep(900);
     if (budget.used >= budget.max) throw new Error("Previše upita u jednoj provjeri" + (budget.last ? " (zadnja greška: " + budget.last + ")" : ""));
     budget.used++;
     try { return await rpcCall(url, method, params); }
