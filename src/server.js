@@ -15,16 +15,16 @@ const ISSUE = "0xcb8241adb0c3fdb35b70c24ce35c5eb0c17af7431c99f827d44a445ca624176
 const ZERO32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const RADAR_CHAINS = [
-  { key: "eth", id: "1", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth.llamarpc.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"], chunk: 2000, issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
+  { key: "eth", id: "1", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth.llamarpc.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"], blockTime: 12, chunk: 2000, issue: "0xdac17f958d2ee523a2206206994597c13d831ec7", tokens: {
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ["USDC", 6], "0xdc035d45d973e3ec169d2276ddab16f1e407384f": ["USDS", 18],
     "0x6b175474e89094c44da98b954eedeac495271d0f": ["DAI", 18], "0x4c9edd5852cd905f086c759e8383e09bff1e68b3": ["USDe", 18],
     "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
     "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
     "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] } },
-  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], chunk: 450, tokens: {
+  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], chunk: 10000, budget: 10, tokens: {
+  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], blockTime: 0.25, chunk: 10000, budget: 10, tokens: {
     "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
     "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
   { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://rpc.arrowrpc.com"], chunk: 5000, budget: 14, tokens: {
@@ -102,16 +102,12 @@ async function blockInfo(c, n, budget) {
 
 async function radarChainRpc(c) {
   const budget = { used: 0, max: c.budget || 12 };
-  const since = Math.floor(Date.now() / 1000) - RADAR_WINDOW_S;
   const head = await blockInfo(c, "latest", budget);
-  // Prvi blok prozora: procjena iz prosječnog vremena bloka, uz jednu provjeru i po potrebi korekciju.
-  const probe = await blockInfo(c, Math.max(0, head.n - 1000), budget);
-  const bt = Math.max(0.05, (head.t - probe.t) / Math.max(1, head.n - probe.n));
-  let start = await blockInfo(c, Math.max(0, head.n - Math.ceil((head.t - since) / bt)), budget);
-  if (start.t > since && start.n > 0) {
-    const bt2 = Math.max(0.05, (head.t - start.t) / Math.max(1, head.n - start.n));
-    start = await blockInfo(c, Math.max(0, start.n - Math.ceil((start.t - since) / bt2) - 10), budget);
-  }
+  // Vrijeme bloka: poznato za veće mreže; za ostale procjena iz zadnjih 100 blokova (stariji blokovi traže arhivski čvor).
+  let bt = c.blockTime;
+  if (!bt) { const probe = await blockInfo(c, Math.max(0, head.n - 100), budget); bt = Math.max(0.05, (head.t - probe.t) / Math.max(1, head.n - probe.n)); }
+  const start = { n: Math.max(0, head.n - Math.ceil(RADAR_WINDOW_S / bt)) };
+  start.t = head.t - (head.n - start.n) * bt;
   // Vrijeme bloka procijenjeno između prvog i zadnjeg bloka prozora, da ne treba poziv po bloku.
   const tsOf = (b) => start.t + (b - start.n) * (head.t - start.t) / Math.max(1, head.n - start.n);
   const filters = [{ address: Object.keys(c.tokens), topics: [TRANSFER, ZERO32], issue: false }];
@@ -200,8 +196,12 @@ async function apiRadarEvm(env) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
   await Promise.all(RADAR_CHAINS.map(async (c) => {
-    try { out.chains[c.key] = c.rpcs ? await radarChainRpc(c) : await radarChain(env, c); }
-    catch (e) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 200) }; }
+    // Prvo javni RPC čvorovi; ako svi odbiju, Blockscout kao rezerva.
+    try { out.chains[c.key] = await radarChainRpc(c); }
+    catch (e) {
+      try { out.chains[c.key] = await radarChain(env, c); }
+      catch (e2) { out.chains[c.key] = { ok: false, err: "RPC: " + String((e && e.message) || e).slice(0, 110) + " | Blockscout: " + String((e2 && e2.message) || e2).slice(0, 80) }; }
+    }
   }));
   return out;
 }
@@ -232,7 +232,7 @@ class HttpError extends Error { constructor(status, msg) { super(msg); this.stat
 
 const API = {
   "/api/radar/evm": async (env, url) => {
-    const d = await memo("radar-evm", 60000, () => apiRadarEvm(env));
+    const d = await memo("radar-evm", 120000, () => apiRadarEvm(env));
     if (!url.searchParams.has("summary")) return d;
     // Kratki pregled stanja po mrežama (za provjeru bez cijelog popisa mintanja).
     const chains = {};
