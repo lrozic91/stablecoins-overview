@@ -588,7 +588,14 @@ async function apiEvmTransfers(env, url) {
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 
 const API = {
-  "/api/radar/evm": (env) => memo("radar-evm", 60000, () => apiRadarEvm(env)),
+  "/api/radar/evm": async (env, url) => {
+    const d = await memo("radar-evm", 60000, () => apiRadarEvm(env));
+    if (!url.searchParams.has("summary")) return d;
+    // Kratki pregled stanja po mrežama (za provjeru bez cijelog popisa mintanja).
+    const chains = {};
+    for (const [k, v] of Object.entries(d.chains)) chains[k] = { ok: v.ok, err: v.err, block: v.block, mints: v.mints ? v.mints.length : 0, max: v.mints ? Math.max(0, ...v.mints.map((m) => m.amt)) : 0 };
+    return { updated: d.updated, chains };
+  },
   "/api/radar/sol": (env) => memo("radar-sol", 180000, () => apiRadarSol(env)),
   "/api/yields": (env, url, ctx) => memo("yields", 600000, () => getYields({ min_tvl: 100000, limit: 2000 }, ctx)),
   "/api/evm/transfers": (env, url) => memo("tx:" + url.search, 120000, () => apiEvmTransfers(env, url)),
