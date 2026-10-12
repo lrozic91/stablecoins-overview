@@ -700,8 +700,10 @@ async function apiSolSafety(env, url) {
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) throw new HttpError(400, "Neispravna adresa / Invalid address.");
   if (!env.RPC_URL) throw new Error("Nedostaje RPC_URL");
   const out = { approvals: [], frozen: {} };
-  for (const programId of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VveaWj2NVmn4FnNwSQoKGnygRWvEm"]) {
-    const r = await heliusPost(env, { jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [addr, { programId }, { encoding: "jsonParsed" }] });
+  // Upit po svakom praćenom stablecoinu (filtar po mintu radi i za Token i za Token-2022 račune).
+  const results = await Promise.all(Object.keys(WALLET_STABLES).map((mint) =>
+    heliusPost(env, { jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [addr, { mint }, { encoding: "jsonParsed" }] })));
+  for (const r of results) {
     for (const a of (r && r.value) || []) {
       const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
       if (!info || !WALLET_STABLES[info.mint]) continue;
