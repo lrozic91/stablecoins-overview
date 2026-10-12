@@ -243,6 +243,117 @@ async function apiEvmTransfers(env, url) {
   return { result };
 }
 
+// ---- Wallet checker: dozvole za trošenje i zamrznute adrese ----
+const APPROVAL = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
+// Funkcije kojima izdavatelji provjeravaju blokiranu adresu: Circle (USDC, EURC), Tether (USDT), Paxos (PYUSD, USDG), USDT0.
+const FREEZE_FNS = [["0xfe575a87", "Circle"], ["0xe47d6060", "Tether"], ["0xe5839836", "Paxos"], ["0xfbac3951", "USDT0"]];
+const SAFETY_RPCS = Object.fromEntries(RADAR_CHAINS.map((c) => [c.id, c.rpcs]));
+const pad32 = (a) => "0x" + a.replace(/^0x/, "").toLowerCase().padStart(64, "0");
+
+// Više eth_call poziva u jednom zahtjevu (JSON-RPC batch); čvor koji ne podržava batch preskače se.
+async function rpcBatch(rpcs, calls) {
+  // Javni čvorovi ograničavaju veličinu batcha, pa se šalje u dijelovima od 40 poziva.
+  if (calls.length > 40) {
+    const out = [];
+    for (let i = 0; i < calls.length; i += 40) out.push(...await rpcBatch(rpcs, calls.slice(i, i + 40)));
+    return out;
+  }
+  if (!calls.length) return [];
+  const body = calls.map((c, i) => ({ jsonrpc: "2.0", id: i, method: "eth_call", params: [{ to: c.to, data: c.data }, "latest"] }));
+  let last;
+  for (const url of rpcs) {
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+      const j = await r.json();
+      if (!Array.isArray(j)) throw new Error("RPC: batch nije podržan");
+      const out = new Array(calls.length).fill(null);
+      for (const x of j) if (x && typeof x.id === "number" && typeof x.result === "string" && x.result.length >= 66) out[x.id] = x.result;
+      return out;
+    } catch (e) { last = e; }
+  }
+  throw last || new Error("RPC nije odgovorio");
+}
+
+async function apiEvmSafety(env, url) {
+  const chain = url.searchParams.get("chain") || "";
+  const address = (url.searchParams.get("address") || "").toLowerCase();
+  const tokens = (url.searchParams.get("tokens") || "").toLowerCase().split(",").filter((t) => /^0x[0-9a-f]{40}$/.test(t)).slice(0, 15);
+  if (!BS_INSTANCES[chain] || !SAFETY_RPCS[chain]) throw new HttpError(400, "Nepoznata mreža / Unknown network.");
+  if (!/^0x[0-9a-f]{40}$/.test(address)) throw new HttpError(400, "Neispravna adresa / Invalid address.");
+  const rpcs = (chain === "8453" && env.BASE_RPC_URL ? [env.BASE_RPC_URL] : []).concat(SAFETY_RPCS[chain]);
+
+  // 1) Zadnja Approval poruka za svaki par (token, ovlašteni ugovor).
+  const latest = new Map();
+  let failed = 0;
+  for (const token of tokens) {
+    let rows;
+    try {
+      rows = await blockscout(env, chain, { module: "logs", action: "getLogs", fromBlock: "0", toBlock: "latest", address: token, topic0: APPROVAL, topic1: pad32(address), topic0_1_opr: "and" });
+    } catch (e) { failed++; continue; }
+    for (const lg of rows) {
+      if (!lg.topics || !lg.topics[2]) continue;
+      const spender = "0x" + lg.topics[2].slice(26).toLowerCase();
+      const key = token + ":" + spender, b = hexOrDec(lg.blockNumber), li = hexOrDec(lg.logIndex) || 0;
+      const prev = latest.get(key);
+      if (!prev || b > prev.b || (b === prev.b && li > prev.li)) latest.set(key, { token, spender, b, li, ts: hexOrDec(lg.timeStamp), tx: lg.transactionHash });
+    }
+    await sleep(150);
+  }
+  if (tokens.length && failed === tokens.length) throw new Error("Blockscout nije vratio dozvole");
+
+  // 2) Trenutni iznos svake dozvole, decimale tokena i provjera blokade, sve u jednom batch pozivu.
+  const pairs = [...latest.values()].slice(0, 60);
+  const calls = [];
+  for (const p of pairs) calls.push({ to: p.token, data: "0xdd62ed3e" + pad32(address).slice(2) + pad32(p.spender).slice(2) });
+  const decTokens = [...new Set(pairs.map((p) => p.token))];
+  for (const t of decTokens) calls.push({ to: t, data: "0x313ce567" });
+  const freezeCalls = [];
+  for (const t of tokens) for (const [sel, who] of FREEZE_FNS) { freezeCalls.push({ token: t, who }); calls.push({ to: t, data: sel + pad32(address).slice(2) }); }
+  const res = await rpcBatch(rpcs, calls);
+
+  const dec = {};
+  decTokens.forEach((t, i) => { const v = res[pairs.length + i]; dec[t] = v ? Number(BigInt(v.slice(0, 66))) : null; });
+  const approvals = [];
+  pairs.forEach((p, i) => {
+    const v = res[i];
+    if (!v) return;
+    const raw = BigInt(v.slice(0, 66));
+    if (raw === 0n) return;
+    const unlimited = raw >= 2n ** 128n;
+    const d = dec[p.token];
+    approvals.push({ token: p.token, spender: p.spender, unlimited, amount: unlimited || d == null ? null : Number(raw) / Math.pow(10, d), ts: p.ts, tx: p.tx });
+  });
+  const frozen = {};
+  freezeCalls.forEach((f, i) => {
+    const v = res[pairs.length + decTokens.length + i];
+    if (!v) return;
+    const isFrozen = BigInt(v.slice(0, 66)) === 1n;
+    frozen[f.token] = { issuer: f.who, frozen: isFrozen || (frozen[f.token] && frozen[f.token].frozen) || false };
+  });
+  return { approvals, frozen, checked: tokens.length, failed };
+}
+
+// Solana: zamrznuti tokenski računi i delegati (dozvole) za stablecoine, iz Helius RPC-a.
+async function apiSolSafety(env, url) {
+  const addr = String(url.searchParams.get("address") || "").trim();
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) throw new HttpError(400, "Neispravna adresa / Invalid address.");
+  if (!env.RPC_URL) throw new Error("Nedostaje RPC_URL");
+  const out = { approvals: [], frozen: {} };
+  for (const programId of ["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VveaWj2NVmn4FnNwSQoKGnygRWvEm"]) {
+    const r = await heliusPost(env, { jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [addr, { programId }, { encoding: "jsonParsed" }] });
+    for (const a of (r && r.value) || []) {
+      const info = a.account && a.account.data && a.account.data.parsed && a.account.data.parsed.info;
+      if (!info || !WALLET_STABLES[info.mint]) continue;
+      const sym = WALLET_STABLES[info.mint];
+      out.frozen[info.mint] = { sym, frozen: info.state === "frozen" || (out.frozen[info.mint] && out.frozen[info.mint].frozen) || false };
+      if (info.delegate && info.delegatedAmount && Number(info.delegatedAmount.uiAmount) > 0) {
+        out.approvals.push({ token: info.mint, sym, spender: info.delegate, unlimited: false, amount: Number(info.delegatedAmount.uiAmount), account: a.pubkey });
+      }
+    }
+  }
+  return out;
+}
+
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 
 const API = {
@@ -260,6 +371,8 @@ const API = {
   "/api/radar/sol": (env) => memo("radar-sol", 180000, () => apiRadarSol(env)),
   "/api/yields": (env, url, ctx) => memo("yields", 600000, () => getYields({ min_tvl: 100000, limit: 2000 }, ctx)),
   "/api/evm/transfers": (env, url) => memo("tx:" + url.search, 120000, () => apiEvmTransfers(env, url)),
+  "/api/evm/safety": (env, url) => memo("safe:" + url.search, 120000, () => apiEvmSafety(env, url)),
+  "/api/sol/safety": (env, url) => memo("ssafe:" + url.search, 120000, () => apiSolSafety(env, url)),
   "/api/sol/wallet": (env, url) => memo("sw:" + url.search, 120000, () => getWallet(env, { address: url.searchParams.get("address"), pages: 3 })),
 };
 
