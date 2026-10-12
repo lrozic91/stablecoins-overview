@@ -172,7 +172,7 @@ td.mono { font-family: var(--f-data); font-size: 0.85rem; white-space: nowrap; f
   var TYPES = [
     { key: "lend", name: "Posudba (lending)", re: /aave|compound|morpho|spark|fluid-lending|euler|kamino-lend|marginfi|solend|^save|jupiter-lend|venus|radiant|silo|dolomite|moonwell|seamless|exactly|gearbox|benqi|lista-lending|loopscale|zerolend|hyperlend|lend/,
       what: "Daješ stablecoine u bazen iz kojeg drugi posuđuju uz kolateral. Prinos raste kad je veća potražnja za kreditom.",
-      from: "Kamate koje plaćaju zajmoprimci", risk: "Loši dugovi, greške u ugovoru, nemogućnost isplate kad je bazen pun posuđen", ex: "Aave, Morpho, Spark, Kamino, Fluid, Euler" },
+      from: "Kamate koje plaćaju zajmoprimci", risk: "Loši dugovi, greške u ugovoru, a kad je sav novac iz bazena posuđen, ne možeš podići depozit dok zajmoprimci ne vrate dio", ex: "Aave, Morpho, Spark, Kamino, Fluid, Euler" },
     { key: "save", name: "Štednja i staking stablecoina", re: /ethena|resolv|elixir|falcon|sky-savings|maker-dsr|spark-savings|sky|frax|level|reservoir|infinifi|usual|avalon|yala|f-x|anzen|cap-|sdai|susd/,
       what: "Pretvaraš stablecoin u njegovu štednu verziju (sUSDe, sUSDS, sDAI). Tvoj udio raste kako izdavatelj zarađuje.",
       from: "Kamate na državne obveznice ili naknade iz delta-neutralnih pozicija (Ethena)", risk: "Depeg, negativne naknade financiranja, rok čekanja na isplatu", ex: "Ethena sUSDe, Sky sUSDS, Spark, Resolv, Falcon" },

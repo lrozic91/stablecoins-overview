@@ -172,7 +172,7 @@ td.mono { font-family: var(--f-data); font-size: 0.85rem; white-space: nowrap; f
   var TYPES = [
     { key: "lend", name: "Lending", re: /aave|compound|morpho|spark|fluid-lending|euler|kamino-lend|marginfi|solend|^save|jupiter-lend|venus|radiant|silo|dolomite|moonwell|seamless|exactly|gearbox|benqi|lista-lending|loopscale|zerolend|hyperlend|lend/,
       what: "You supply stablecoins to a pool that others borrow from against collateral. The yield rises when demand for loans is higher.",
-      from: "Interest paid by borrowers", risk: "Bad debt, contract bugs, inability to withdraw when the pool is fully borrowed", ex: "Aave, Morpho, Spark, Kamino, Fluid, Euler" },
+      from: "Interest paid by borrowers", risk: "Bad debt, contract bugs, and when all the money in the pool is lent out, you can't withdraw until borrowers repay some of it", ex: "Aave, Morpho, Spark, Kamino, Fluid, Euler" },
     { key: "save", name: "Stablecoin savings and staking", re: /ethena|resolv|elixir|falcon|sky-savings|maker-dsr|spark-savings|sky|frax|level|reservoir|infinifi|usual|avalon|yala|f-x|anzen|cap-|sdai|susd/,
       what: "You convert a stablecoin into its savings version (sUSDe, sUSDS, sDAI). Your share grows as the issuer earns.",
       from: "Interest on government bonds or funding fees from delta-neutral positions (Ethena)", risk: "Depeg, negative funding rates, withdrawal waiting period", ex: "Ethena sUSDe, Sky sUSDS, Spark, Resolv, Falcon" },
