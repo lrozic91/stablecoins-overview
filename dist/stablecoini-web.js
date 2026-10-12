@@ -382,7 +382,7 @@ const RADAR_CHAINS = [
     "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
     "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
     "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] } },
-  { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
+  { key: "base", id: "8453", rpcFirst: true, rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
   { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], blockTime: 0.25, chunk: 10000, tokens: {
@@ -561,8 +561,14 @@ async function apiRadarEvm(env) {
   await Promise.all(RADAR_CHAINS.map(async (c) => {
     // S ključem BLOCKSCOUT_KEY koristi se Blockscout PRO API (pouzdan); bez njega javni RPC čvorovi,
     // koji Cloudflare Workere često ograniče jer dijele iste IP adrese.
-    try { out.chains[c.key] = env.BLOCKSCOUT_KEY ? await radarChain(env, c) : await radarChainRpc(c, shared); }
-    catch (e) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 200) }; }
+    // Base u besplatnom Blockscout PRO planu nije dostupan, pa uvijek ide preko RPC-a. Ako prvi način ne uspije, pokuša se drugi.
+    const first = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChain(env, c) : () => radarChainRpc(c, shared);
+    const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
+    try { out.chains[c.key] = await first(); }
+    catch (e) {
+      try { if (!second) throw e; out.chains[c.key] = await second(); }
+      catch (e2) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 120) + (e2 !== e ? " | " + String((e2 && e2.message) || e2).slice(0, 80) : "") }; }
+    }
   }));
   return out;
 }
