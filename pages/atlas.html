@@ -822,13 +822,7 @@ window.makePie = function (items, c1, c2) {
       return Math.max(1, (x1 - x0) / 900);
     }
     fsc = layout();
-    // Items too small to carry a label get a line under the network name instead.
-    groups.forEach(function (g) {
-      g.small = g.items.filter(function (it) { return !labelFs(it, fsc); }).sort(function (a, b) { return b.v - a.v; }).slice(0, 5);
-      g.r += g.small.length * 13 * fsc;
-    });
-    fsc = layout();
-    order.forEach(function (g) { y1 = Math.max(y1, g.y + g.R + (36 + g.small.length * 13) * fsc); });
+    order.forEach(function (g) { y1 = Math.max(y1, g.y + g.R + 36 * fsc); });
     var W = x1 - x0, H = y1 - y0;
     var Rmax = groups.reduce(function (m, x) { return Math.max(m, x.R); }, 0);
     var svg = svgEl("svg", { viewBox: [x0, y0, W, H].map(function (n) { return n.toFixed(1); }).join(" "), role: "img" });
@@ -884,12 +878,6 @@ window.makePie = function (items, c1, c2) {
       var ly = g.y + g.R + 16 * fsc;
       var tl = svgEl("text", { x: g.x, y: ly, "text-anchor": "middle", class: "cl" }, g.ch.name); tl.style.fill = nc; tl.style.fontSize = (15 * fsc) + "px"; gg.appendChild(tl);
       var tv2 = svgEl("text", { x: g.x, y: ly + 14 * fsc, "text-anchor": "middle", class: "cv" }, fmt(g.tot)); tv2.style.fontSize = (11 * fsc) + "px"; gg.appendChild(tv2);
-      g.small.forEach(function (it, k) {
-        var yy = ly + (28 + k * 13) * fsc, label = it.name + " " + fmtS(it.v);
-        var w = label.length * 6.1 * fsc;
-        var dot = svgEl("circle", { cx: g.x - w / 2 - 7 * fsc, cy: yy - 3.5 * fsc, r: 4 * fsc }); dot.style.fill = colorOf(it); gg.appendChild(dot);
-        var st = svgEl("text", { x: g.x - w / 2, y: yy, class: "cv" }, label); st.style.fontSize = (10.5 * fsc) + "px"; st.style.fill = "var(--ink)"; gg.appendChild(st);
-      });
       svg.appendChild(gg);
       aria.push(g.ch.name + " " + fmt(g.tot) + ": " + g.items.slice(0, 3).map(function (i) { return i.name + " " + fmtS(i.v); }).join(", "));
     });
