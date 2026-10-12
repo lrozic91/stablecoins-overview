@@ -242,6 +242,7 @@ th { background: var(--thead); }
     <li><a href="#stablecoini">Stablecoins</a></li>
     <li><a href="#pojmovi">Concepts</a></li>
     <li><a href="#regulativa">Regulation and risks</a></li>
+    <li><a href="#kategorije">Protocol types</a></li>
     <li><a href="#izvori">Sources</a></li>
   </ul>
 </nav>
@@ -539,6 +540,19 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
       <li><strong>L2 network risk:</strong> Base, Arbitrum and Robinhood Chain have a centralized sequencer; withdrawing to Ethereum through the official bridge takes about 7 days.</li>
       <li><strong>Freezing:</strong> Tether, Circle and Paxos can freeze addresses, which protects against fraud but is also a form of centralization.</li>
     </ul>
+  </section>
+
+  <section id="kategorije">
+    <h2>Types of DeFi protocols</h2>
+    <p class="intro">The colours in the DeFi protocol map mark these groups.</p>
+    <div class="concepts">
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-usdc)"></i>Lending</h3><p>Protocols for borrowing and lending. Users deposit crypto or stablecoins and earn interest, while others borrow against collateral. Examples: Aave, Morpho, Spark, Kamino.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-usdt)"></i>DEX</h3><p>Decentralized exchange: swap tokens straight from a wallet through liquidity pools, with no intermediary. Examples: Uniswap, Curve, Jupiter, Raydium.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-x)"></i>Staking</h3><p>Locking a network's native token (ETH, SOL) to secure the network in return for rewards. Liquid staking gives a token you can keep using. Examples: Lido, Jito, Sanctum.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-y)"></i>Derivatives</h3><p>Trading contracts whose value depends on another asset, mostly perpetual futures with leverage. Examples: GMX, Drift, Lighter.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-sky)"></i>Stablecoin / yield</h3><p>Protocols that issue their own stablecoin or pay yield on stablecoins, e.g. from treasury bills or funding rates. Examples: Sky, Ethena, Pendle.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:color-mix(in srgb, var(--muted) 70%, var(--surface))"></i>Other</h3><p>Anything outside the groups above, e.g. launchpads for new tokens. Example: Pump.</p></div>
+    </div>
   </section>
 
   <footer id="izvori">

@@ -242,6 +242,7 @@ th { background: var(--thead); }
     <li><a href="#stablecoini">Stablecoini</a></li>
     <li><a href="#pojmovi">Pojmovi</a></li>
     <li><a href="#regulativa">Regulativa i rizici</a></li>
+    <li><a href="#kategorije">Vrste protokola</a></li>
     <li><a href="#izvori">Izvori</a></li>
   </ul>
 </nav>
@@ -539,6 +540,19 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
       <li><strong>Rizik L2 mreže:</strong> Base, Arbitrum i Robinhood Chain imaju centraliziranog sekvencera; povlačenje na Ethereum kroz službeni most traje oko 7 dana.</li>
       <li><strong>Zamrzavanje:</strong> Tether, Circle i Paxos mogu zamrznuti adrese, što štiti od prijevara, ali je i oblik centralizacije.</li>
     </ul>
+  </section>
+
+  <section id="kategorije">
+    <h2>Vrste DeFi protokola</h2>
+    <p class="intro">Boje u mapi DeFi protokola označavaju ove skupine.</p>
+    <div class="concepts">
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-usdc)"></i>Kreditiranje</h3><p>Protokoli za posudbu i pozajmljivanje. Korisnik položi kriptovalutu ili stablecoin i dobije kamatu, a drugi uz kolateral posuđuju. Primjeri: Aave, Morpho, Spark, Kamino.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-usdt)"></i>DEX</h3><p>Decentralizirana mjenjačnica: zamjena tokena izravno iz novčanika, preko bazena likvidnosti, bez posrednika. Primjeri: Uniswap, Curve, Jupiter, Raydium.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-x)"></i>Staking</h3><p>Zaključavanje native tokena (ETH, SOL) radi osiguranja mreže, uz nagradu. Liquid staking daje token koji se može dalje koristiti. Primjeri: Lido, Jito, Sanctum.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-y)"></i>Derivati</h3><p>Trgovanje ugovorima čija vrijednost ovisi o drugoj imovini, najčešće perpetual futures s polugom. Primjeri: GMX, Drift, Lighter.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:var(--c-sky)"></i>Stablecoin / prinos</h3><p>Protokoli koji izdaju vlastiti stablecoin ili donose prinos na stablecoine, npr. iz državnih obveznica ili stopa financiranja. Primjeri: Sky, Ethena, Pendle.</p></div>
+      <div class="concept"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;background:color-mix(in srgb, var(--muted) 70%, var(--surface))"></i>Ostalo</h3><p>Sve što ne spada u gornje skupine, npr. launchpadi za nove tokene. Primjer: Pump.</p></div>
+    </div>
   </section>
 
   <footer id="izvori">
