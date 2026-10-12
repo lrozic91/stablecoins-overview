@@ -52,8 +52,13 @@ window.makePie = function (items, c1, c2) {
   function fmt(v) { return v >= 1 ? nf.format(v) + " bn $" : Math.round(v * 1000) + " M $"; }
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
-  var bars = document.getElementById("bars");
-  var max = nets[0].total;
+  var A = window.ATLAS = window.ATLAS || { hooks: [] };
+  var ND = { market: 307.788, cp: [["USDT",184.186],["USDC",74.304],["USDS",6.836],["USDe",4.977],["DAI",4.8]] };
+  A.nets = nets; A.netsData = ND; A.fmt = fmt;
+  function renderNets() {
+  var FIVE = nets.reduce(function (a, n) { return a + n.total; }, 0);
+  var bars = document.getElementById("bars"); bars.innerHTML = "";
+  var max = Math.max.apply(null, nets.map(function (n) { return n.total; }));
   nets.forEach(function (n) {
     var row = el("div", "bar-row");
     row.appendChild(el("span", "name", n.name));
@@ -67,14 +72,14 @@ window.makePie = function (items, c1, c2) {
   });
 
   var np = nets.map(function (n) { return { l: n.name, v: n.total, c: "var(--n-" + n.key + ")", s: fmt(n.total) }; });
-  np.push({ l: "Other networks", v: 307.788 - 173.366, c: "var(--c-rest)", s: fmt(307.788 - 173.366) });
-  document.getElementById("pie-nets").appendChild(window.makePie(np, "307.8 bn", "total"));
-  var cp = [["USDT",184.186],["USDC",74.304],["USDS",6.836],["USDe",4.977],["DAI",4.8]];
+  np.push({ l: "Other networks", v: ND.market - FIVE, c: "var(--c-rest)", s: fmt(ND.market - FIVE) });
+  var pn = document.getElementById("pie-nets"); pn.innerHTML = ""; pn.appendChild(window.makePie(np, fmt(ND.market).replace(" $", ""), "total"));
+  var cp = ND.cp;
   var cpi = cp.map(function (m) { return { l: m[0], v: m[1], c: C[m[0]], s: fmt(m[1]) }; });
-  var crest = 307.788 - cp.reduce(function (a, m) { return a + m[1]; }, 0);
+  var crest = ND.market - cp.reduce(function (a, m) { return a + m[1]; }, 0);
   cpi.push({ l: "Other", v: crest, c: "var(--c-rest)", s: fmt(crest) });
-  document.getElementById("pie-coins").appendChild(window.makePie(cpi, "307.8 bn", "total"));
-  var box = document.getElementById("nets");
+  var pc = document.getElementById("pie-coins"); pc.innerHTML = ""; pc.appendChild(window.makePie(cpi, fmt(ND.market).replace(" $", ""), "total"));
+  var box = document.getElementById("nets"); box.innerHTML = "";
   nets.forEach(function (n) {
     var card = el("article", "net"); card.dataset.n = n.key;
     var head = el("div", "net-head");
@@ -113,6 +118,8 @@ window.makePie = function (items, c1, c2) {
     card.appendChild(el("p", "say", n.say));
     box.appendChild(card);
   });
+  }
+  renderNets(); A.hooks.push(renderNets);
 })();
 </script>
 
@@ -136,7 +143,9 @@ window.makePie = function (items, c1, c2) {
       p: [["Morpho Blue","Lending","605 M $","Markets and vaults for USDG and other stablecoins."],["Steakhouse Financial","Risk curator","536 M $","Manages vaults on Morpho."],["Uniswap","DEX","244 M $","Stablecoin and token swaps."],["Lighter","Exchange / perps","113 M $","Trading with a stablecoin as margin."],["Arcus","Exchange","43 M $","Trading."],["Fables","DEX","42 M $","Swaps."],["Grove Finance","Capital allocator","15 M $","Sky capital allocation."],["Spark","Lending","15 M $","USDS liquidity."]] }
   ];
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
-  var box = document.getElementById("defi-list");
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.defi = D;
+  function renderDefi() {
+  var box = document.getElementById("defi-list"); box.innerHTML = "";
   D.forEach(function (n) {
     var c = el("article", "dnet"); c.dataset.n = n.key;
     var h = el("div", "dnet-head"); h.appendChild(el("h3", null, n.name));
@@ -168,6 +177,8 @@ window.makePie = function (items, c1, c2) {
     tb.appendChild(body); w.appendChild(tb); c.appendChild(w);
     box.appendChild(c);
   });
+  }
+  renderDefi(); A.hooks.push(renderDefi);
 })();
 </script>
 
@@ -328,6 +339,7 @@ window.makePie = function (items, c1, c2) {
   function set(e) { equal = e; bR.setAttribute("aria-pressed", e ? "false" : "true"); bE.setAttribute("aria-pressed", e ? "true" : "false"); render(); }
   bR.addEventListener("click", function () { set(false); }); bE.addEventListener("click", function () { set(true); });
   render();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.bubble = chains; A.hooks.push(render);
 })();
 </script>
 <script>
@@ -399,7 +411,7 @@ window.makePie = function (items, c1, c2) {
     svg.appendChild(el("path", { d: line, "class": "ln" }));
     var lp = pts[pts.length - 1];
     svg.appendChild(el("circle", { cx: lp[0], cy: lp[1], r: 4, "class": "pt" }));
-    svg.appendChild(el("text", { x: lp[0] - 6, y: lp[1] + 20, "text-anchor": "end", "font-size": small ? 11 : 12, "class": "endlbl" }, small ? "307.8 bn" : "307.8 bn $"));
+    svg.appendChild(el("text", { x: lp[0] - 6, y: lp[1] + 20, "text-anchor": "end", "font-size": small ? 11 : 12, "class": "endlbl" }, small ? fmt(D[D.length - 1][2]).replace(" $", "") : fmt(D[D.length - 1][2])));
     var rad = small ? 7 : 8, rows = [-1e9, -1e9, -1e9];
     E.forEach(function (e, i) {
       var x = X(t(e[0], e[1])), k = 0;
@@ -439,5 +451,6 @@ window.makePie = function (items, c1, c2) {
   });
   var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { draw(); reset(); }, 120); });
   draw(); reset();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.hist = D; A.hooks.push(function () { draw(); reset(); });
 })();
 </script>

@@ -172,7 +172,7 @@ async function getYields(args, ctx) {
   const limit = Math.max(1, Math.min(2000, Number(args.limit || 1000)));
   const cacheKey = new Request("https://cache.solana-mints/yields?min=" + minTvl + "&limit=" + limit);
   const cache = typeof caches !== "undefined" ? caches.default : null;
-  if (cache) {
+  if (cache && !args.fresh) {
     const hit = await cache.match(cacheKey);
     if (hit) return await hit.json();
   }

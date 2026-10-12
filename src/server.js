@@ -356,6 +356,118 @@ async function apiSolSafety(env, url) {
   return out;
 }
 
+// ---- Općenito (Atlas): svježi podaci s DefiLlame za gumb Osvježi ----
+// Velike JSON datoteke ne parsiramo cijele (CPU limit Workera): tražimo samo objekte koji nam trebaju.
+const ATLAS_CHAINS = { eth: "Ethereum", sol: "Solana", base: "Base", arb: "Arbitrum", hood: "Robinhood Chain" };
+const ATLAS_COINS = ["USDT", "USDC", "USDS", "USDe", "DAI", "USD1", "USDG", "PYUSD", "RLUSD", "USYC", "EURC", "BUIDL"];
+const ATLAS_PROTOCOLS = ["Aave", "Aave V3", "Aerodrome", "Arcus", "Compound", "Compound V3", "Curve", "Drift", "EigenCloud", "Ethena", "Fables", "Falcon",
+  "Falcon Finance", "Fluid", "GMX", "Gauntlet", "Grove", "Grove Finance", "Huma", "Jito", "Jupiter", "Kamino", "Lido", "Lighter", "Maple", "Maple Finance",
+  "Meteora", "Morpho", "Morpho Blue", "OnRe", "Orca", "Pendle", "Pump", "Raydium", "Sanctum", "Sky", "Spark", "Steakhouse Financial", "USD AI", "Uniswap"];
+// Drugi nazivi pod kojima DefiLlama vodi isti protokol (ili njegovu "parent" skupinu).
+const ATLAS_ALIAS = { Compound: ["compound-finance"], Curve: ["curve-finance", "curve-dex"], EigenCloud: ["eigenlayer", "eigencloud"], Falcon: ["falcon-finance"],
+  Grove: ["grove-finance"], Maple: ["maple-finance", "maple"], "Maple Finance": ["maple"], Huma: ["huma-finance"], Pump: ["pump", "pump.fun"], Lido: ["lido"],
+  "Morpho Blue": ["morpho-blue"], "Steakhouse Financial": ["steakhouse-financial", "steakhouse"] };
+const slugify = (n) => n.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-|-$/g, "");
+const jsonStr = (t, key, from, to) => {
+  const k = t.indexOf('"' + key + '":"', from);
+  if (k < 0 || k > to) return null;
+  const a = k + key.length + 4, b = t.indexOf('"', a);
+  return t.slice(a, b);
+};
+const jsonObj = (t, key, from, to) => {
+  const k = t.indexOf('"' + key + '":{', from);
+  if (k < 0 || k > to) return null;
+  let i = k + key.length + 3, depth = 0;
+  for (let j = i; j < t.length; j++) {
+    const c = t.charCodeAt(j);
+    if (c === 123) depth++;
+    else if (c === 125 && --depth === 0) { try { return JSON.parse(t.slice(i, j + 1)); } catch { return null; } }
+  }
+  return null;
+};
+
+async function atlasProtocols() {
+  const r = await fetch("https://api.llama.fi/protocols");
+  if (!r.ok) throw new Error("DefiLlama protocols HTTP " + r.status);
+  const t = await r.text();
+  const byName = {}, bySlug = {};
+  for (const n of ATLAS_PROTOCOLS) {
+    byName[n.toLowerCase()] = n;
+    for (const sl of [slugify(n), ...(ATLAS_ALIAS[n] || [])]) (bySlug[sl] = bySlug[sl] || []).push(n);
+  }
+  const exact = {}, parent = {}, slugHit = {};
+  const chains = Object.values(ATLAS_CHAINS);
+  const pick = (ct) => { const o = {}; for (const c of chains) if (typeof ct[c] === "number") o[c] = ct[c]; return o; };
+  let pos = t.indexOf('{"id":"');
+  while (pos >= 0) {
+    const next = t.indexOf('{"id":"', pos + 7), end = next < 0 ? t.length : next;
+    const name = jsonStr(t, "name", pos, end) || "";
+    const slug = jsonStr(t, "slug", pos, end) || "";
+    const par = (jsonStr(t, "parentProtocol", pos, end) || "").replace(/^parent#/, "");
+    const hitName = byName[name.toLowerCase()], hitSlug = !hitName && bySlug[slug] ? bySlug[slug] : null;
+    const hitPar = par && bySlug[par];
+    if (hitName || hitSlug || hitPar) {
+      const ct = jsonObj(t, "chainTvls", pos, end);
+      if (ct) {
+        if (hitName) exact[hitName] = pick(ct);
+        if (hitSlug) for (const n of hitSlug) slugHit[n] = slugHit[n] || pick(ct);
+        if (hitPar) for (const n of hitPar) {
+          const acc = parent[n] = parent[n] || {};
+          for (const [c, v] of Object.entries(pick(ct))) acc[c] = (acc[c] || 0) + v;
+        }
+      }
+    }
+    pos = next;
+  }
+  const out = {};
+  for (const n of ATLAS_PROTOCOLS) if (exact[n] || parent[n] || slugHit[n]) out[n] = exact[n] || parent[n] || slugHit[n];
+  return out;
+}
+
+async function atlasStablecoins() {
+  const r = await fetch("https://stablecoins.llama.fi/stablecoins?includePrices=true");
+  if (!r.ok) throw new Error("DefiLlama stablecoins HTTP " + r.status);
+  const t = await r.text();
+  const coins = {};
+  for (const sym of ATLAS_COINS) {
+    let k = t.indexOf('"symbol":"' + sym + '"');
+    while (k >= 0) {
+      const start = t.lastIndexOf('{"id":"', k), next = t.indexOf('{"id":"', k), end = next < 0 ? t.length : next;
+      const peg = jsonStr(t, "pegType", start, end) || "peggedUSD";
+      const circ = jsonObj(t, "circulating", start, end) || {};
+      const total = Number(circ[peg]) || 0;
+      if (!coins[sym] || total > coins[sym].total) {
+        const cc = jsonObj(t, "chainCirculating", start, end) || {};
+        const chains = {};
+        for (const c of Object.values(ATLAS_CHAINS)) { const v = cc[c] && cc[c].current && Number(cc[c].current[peg]); if (v) chains[c] = v; }
+        const pm = t.slice(start, end).match(/"price":(-?[\d.eE+-]+)/);
+        coins[sym] = { total, peg, chains, price: pm ? Number(pm[1]) : null };
+      }
+      k = t.indexOf('"symbol":"' + sym + '"', end);
+    }
+  }
+  return coins;
+}
+
+async function apiAtlas(ctx) {
+  const [chainsR, tvlR, coins, prot] = await Promise.all([
+    fetch("https://stablecoins.llama.fi/stablecoinchains").then((r) => { if (!r.ok) throw new Error("DefiLlama stablecoinchains HTTP " + r.status); return r.json(); }),
+    fetch("https://api.llama.fi/v2/chains").then((r) => r.ok ? r.json() : []).catch(() => []),
+    atlasStablecoins(),
+    atlasProtocols().catch(() => ({})),
+  ]);
+  let market = 0;
+  const supply = {};
+  for (const c of chainsR) {
+    const v = Object.values(c.totalCirculatingUSD || {}).reduce((a, x) => a + (Number(x) || 0), 0);
+    market += v;
+    for (const [k, n] of Object.entries(ATLAS_CHAINS)) if (c.name === n) supply[k] = v;
+  }
+  const tvl = {};
+  for (const c of tvlR || []) for (const [k, n] of Object.entries(ATLAS_CHAINS)) if (c.name === n) tvl[k] = c.tvl;
+  return { updated: new Date().toISOString(), market, supply, tvl, coins, protocols: prot };
+}
+
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 
 const API = {
@@ -371,10 +483,16 @@ const API = {
     return { updated: d.updated, chains };
   },
   "/api/radar/sol": (env) => memo("radar-sol", 180000, () => apiRadarSol(env)),
-  "/api/yields": (env, url, ctx) => memo("yields", 600000, () => getYields({ min_tvl: 100000, limit: 2000 }, ctx)),
+  // ?fresh=1 (gumb Osvježi): zaobilazi 10-minutnu memoriju, ali najviše jednom u minuti, da DefiLlama ne dobije previše upita.
+  "/api/yields": (env, url, ctx) => url.searchParams.has("fresh")
+    ? memo("yields-fresh", 60000, () => getYields({ min_tvl: 100000, limit: 2000, fresh: true }, ctx).then((d) => { MEMO.set("yields", { at: Date.now(), p: Promise.resolve(d) }); return d; }))
+    : memo("yields", 600000, () => getYields({ min_tvl: 100000, limit: 2000 }, ctx)),
   "/api/evm/transfers": (env, url) => memo("tx:" + url.search, 120000, () => apiEvmTransfers(env, url)),
   "/api/evm/safety": (env, url) => memo("safe:" + url.search, 120000, () => apiEvmSafety(env, url)),
   "/api/sol/safety": (env, url) => memo("ssafe:" + url.search, 120000, () => apiSolSafety(env, url)),
+  "/api/atlas": (env, url, ctx) => url.searchParams.has("fresh")
+    ? memo("atlas-fresh", 60000, () => apiAtlas(ctx).then((d) => { MEMO.set("atlas", { at: Date.now(), p: Promise.resolve(d) }); return d; }))
+    : memo("atlas", 600000, () => apiAtlas(ctx)),
   "/api/sol/wallet": (env, url) => memo("sw:" + url.search, 120000, () => getWallet(env, { address: url.searchParams.get("address"), pages: 3 })),
 };
 

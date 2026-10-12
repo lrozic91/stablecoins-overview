@@ -161,12 +161,19 @@ footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
 }
 header.hero { margin-top: 24px; padding: 32px clamp(18px, 4vw, 36px); border-radius: 10px; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); }
 header.hero .lead, header.hero .eyebrow { color: var(--hero-ink); opacity: 0.8; }
+.live { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 0.88rem; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.5; flex: none; }
+.live.ok .dot { background: #3ccf8e; opacity: 1; }
+.live.err .dot { background: #f2867e; opacity: 1; }
+.live button { font: inherit; font-size: 0.85rem; border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.live button:disabled { opacity: 0.6; cursor: progress; }
 .fig { border: 0; }
 .fig.t1 { background: var(--t1); } .fig.t1 b { color: var(--t1-ink); }
 .fig.t2 { background: var(--t2); } .fig.t2 b { color: var(--t2-ink); }
 .fig.t3 { background: var(--t3); } .fig.t3 b { color: var(--t3-ink); }
 .fig.t4 { background: var(--t4); } .fig.t4 b { color: var(--t4-ink); }
 .fig span { color: var(--hero-ink); opacity: 0.75; }
+.fig span span { font-size: inherit; color: inherit; opacity: 1; }
 section h2 { color: var(--h2); }
 th { background: var(--thead); }
 .net { border-top: 4px solid var(--nc); padding-top: 0; overflow: hidden; }
@@ -256,20 +263,21 @@ th { background: var(--thead); }
 
 <main class="wrap">
   <header class="hero">
-    <div class="eyebrow">Stanje na dan 7. listopada 2026. · podaci: DefiLlama</div>
+    <div class="eyebrow"><span data-live="asof">Stanje na dan 7. listopada 2026.</span> · podaci: DefiLlama</div>
     <h1>Stablecoini na Ethereumu, Solani, Baseu, Arbitrumu i Robinhood Chainu</h1>
     <p class="lead">Koliko stablecoina drži svaka od pet mreža, koji stablecoin na njoj prevladava i koji token pokreće mrežu.</p>
     <div class="figures">
-      <div class="fig t1"><b class="num">173,4 mlrd. $</b><span>stablecoina na ovih pet mreža</span></div>
-      <div class="fig t2"><b class="num">56 %</b><span>ukupnog tržišta od 307,8 mlrd. $</span></div>
-      <div class="fig t3"><b class="num">84 %</b><span>od tih 173 mlrd. $ je samo na Ethereumu</span></div>
+      <div class="fig t1"><b class="num" data-live="five">173,4 mlrd. $</b><span>stablecoina na ovih pet mreža</span></div>
+      <div class="fig t2"><b class="num" data-live="share">56 %</b><span>ukupnog tržišta od <span data-live="market">307,8 mlrd. $</span></span></div>
+      <div class="fig t3"><b class="num" data-live="ethshare">84 %</b><span>od tih <span data-live="five0">173 mlrd. $</span> je samo na Ethereumu</span></div>
       <div class="fig t4"><b class="num">USDC</b><span>prevladava na Solani, Baseu i Arbitrumu</span></div>
     </div>
+    <div class="live" id="live"><span class="dot"></span><span id="live-text">Stanje od 7. 10. 2026.</span><button type="button" id="live-refresh">Osvježi</button></div>
   </header>
 
   <section id="kratko">
     <h2>Kratka povijest stablecoina</h2>
-    <p class="intro">Stablecoin je token čija je vrijednost vezana uz dolar ili drugu valutu. Za dvanaest godina narastao je od eksperimenta na Bitcoinu do tržišta od 307,8 mlrd. $.</p>
+    <p class="intro">Stablecoin je token čija je vrijednost vezana uz dolar ili drugu valutu. Za dvanaest godina narastao je od eksperimenta na Bitcoinu do tržišta od <span data-live="market">307,8 mlrd. $</span>.</p>
     <ol class="eras">
       <li><span class="yr">2014. – 2017.</span><div><h3>Počeci</h3><p>Tether 2014. izdaje prvi dolarski token na Bitcoinu (sloj Omni), pokriven dolarima u banci. Mjenjačnice ga koriste umjesto dolara jer im banke teško otvaraju račune. U prosincu 2017. MakerDAO pokreće DAI, prvi decentralizirani stablecoin pokriven kriptovalutom.</p></div></li>
       <li><span class="yr">2018. – 2019.</span><div><h3>Regulirani dolar na blockchainu</h3><p>Circle i Coinbase 2018. pokreću USDC s mjesečnim potvrdama rezervi, a uz njih dolaze Paxos i Gemini. Facebook 2019. najavljuje Libru, što prvi put privlači pozornost vlada i središnjih banaka.</p></div></li>
@@ -290,7 +298,7 @@ th { background: var(--thead); }
     <div class="bmap">
       <div class="bmap-head"><h3>Stablecoini po mrežama</h3><div class="legend" id="bm1-leg"></div></div>
       <div id="bm1"></div>
-      <div class="caption">Ponuda stablecoina na mreži, DefiLlama, 7. 10. 2026. „Ostali“ su manji stablecoini na toj mreži.</div>
+      <div class="caption">Ponuda stablecoina na mreži, DefiLlama, <span data-live="dshort">7. 10. 2026.</span> „Ostali“ su manji stablecoini na toj mreži.</div>
     </div>
     <div class="bmap">
       <div class="bmap-head"><h3>DeFi protokoli po mrežama</h3><div class="legend" id="bm2-leg"></div></div>
@@ -329,7 +337,7 @@ th { background: var(--thead); }
   <section id="povijest">
     <div class="eyebrow">Povijest</div>
     <h2>Kako je rasla ukupna ponuda stablecoina, 2014. – 2026.</h2>
-    <p class="intro">Od nekoliko milijuna dolara USDT-a 2014. do oko 308 mlrd. $ danas. Najveći skok bio je 2020. i 2021., a jedini veliki pad došao je 2022. nakon sloma Terrinog UST-a.</p>
+    <p class="intro">Od nekoliko milijuna dolara USDT-a 2014. do oko <span data-live="market0">308 mlrd. $</span> danas. Najveći skok bio je 2020. i 2021., a jedini veliki pad došao je 2022. nakon sloma Terrinog UST-a.</p>
     <div class="hist-card">
       <div class="hist-top">
         <div class="hist-read" id="hist-read" aria-live="polite"></div>
@@ -340,7 +348,7 @@ th { background: var(--thead); }
       </div>
       <svg id="hist-svg" role="img" aria-label="Ukupna ponuda stablecoina od 2014. do 2026. s označenim ključnim događajima"></svg>
       <ol class="hist-ev" id="hist-ev"></ol>
-      <p class="hist-note">Ukupna ponuda svih stablecoina vezanih uz dolar i druge valute, na svim mrežama zajedno. Vrijednosti su približne, na kraju razdoblja. Do 2019. temelje se na ponudi USDT-a, USDC-a, TUSD-a, PAX-a i DAI-ja, a od 2020. na podacima DefiLlame. Zadnja točka: DefiLlama, 7. 10. 2026.</p>
+      <p class="hist-note">Ukupna ponuda svih stablecoina vezanih uz dolar i druge valute, na svim mrežama zajedno. Vrijednosti su približne, na kraju razdoblja. Do 2019. temelje se na ponudi USDT-a, USDC-a, TUSD-a, PAX-a i DAI-ja, a od 2020. na podacima DefiLlame. Zadnja točka: DefiLlama, <span data-live="dshort">7. 10. 2026.</span></p>
     </div>
   <style>
 /* Top 10 na jednom grafu: linije po stablecoinu, fiksni redoslijed boja, 9. serija neutralna isprekidana */
@@ -421,7 +429,7 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
       <div class="mc-legend" id="mc-legend"></div>
       <div class="mc-wrap"><svg id="mc-svg" role="img" aria-label="Ponuda deset najvećih stablecoina od 2015. do 2026."></svg><div class="mc-tip" id="mc-tip"></div></div>
     </div>
-    <p class="hist-note">Ponuda na kraju mjeseca prema DefiLlami, zbroj svih mreža, do rujna 2026. Za USDT do kraja 2020. i za USDG do lipnja 2025. korišten je CoinMarketCap, jer DefiLlama za to razdoblje ne prati sve mreže (npr. USDT na Bitcoinovom protokolu Omni). USYC je Circleov tokenizirani fond novčanog tržišta; DefiLlama ga vodi kao stablecoin, a njegova cijena polako raste iznad 1 $. DAI je prikazan od studenog 2019., kada je zamijenio prvu verziju (SAI) iz prosinca 2017.</p>
+    <p class="hist-note">Ponuda na kraju mjeseca prema DefiLlami, zbroj svih mreža, <span data-live="mcuntil">do rujna 2026.</span> Za USDT do kraja 2020. i za USDG do lipnja 2025. korišten je CoinMarketCap, jer DefiLlama za to razdoblje ne prati sve mreže (npr. USDT na Bitcoinovom protokolu Omni). USYC je Circleov tokenizirani fond novčanog tržišta; DefiLlama ga vodi kao stablecoin, a njegova cijena polako raste iznad 1 $. DAI je prikazan od studenog 2019., kada je zamijenio prvu verziju (SAI) iz prosinca 2017.</p>
   </section>
 <style>
 /* Peg: po stablecoinu raspon cijene unutar mjeseca (crtica) i cijena na kraju mjeseca (linija), os fiksno 0,85–1,15 $ */
@@ -469,10 +477,10 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
 
   <section id="usporedba">
     <h2>Usporedba ponude</h2>
-    <p class="intro">Ethereum ima gotovo devet puta više stablecoina od Solane. Tri L2 mreže zajedno imaju 10,1 mlrd. $, manje od same Solane.</p>
+    <p class="intro">Ethereum ima <span data-live="ethsol">gotovo devet puta više</span> stablecoina od Solane. Tri L2 mreže zajedno imaju <span data-live="l2">10,1 mlrd. $</span>, <span data-live="l2cmp">manje od same Solane</span>.</p>
     <div class="chart-card">
             <div class="bars" id="bars"></div>
-      <div class="caption">Ukupna ponuda stablecoina na mreži u USD. Izvor: DefiLlama, 7. 10. 2026.</div>
+      <div class="caption">Ukupna ponuda stablecoina na mreži u USD. Izvor: DefiLlama, <span data-live="dshort">7. 10. 2026.</span></div>
     </div>
     <div class="pies">
       <div class="pie-card"><h3>Udio mreža u cijelom tržištu stablecoina</h3><div id="pie-nets"></div></div>
@@ -490,26 +498,26 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
     <h2>DeFi protokoli i upotreba stablecoina</h2>
     <p class="intro">Na svakoj mreži stablecoini imaju drugačiju glavnu ulogu. Na Ethereumu su to krediti i prinos, na Solani trgovanje, na Baseu i Robinhood Chainu posuđivanje preko Morpha, a na Arbitrumu krediti i derivati.</p>
     <div class="defi" id="defi-list"></div>
-    <p class="caption">TVL (ukupna zaključana vrijednost) po protokolu na toj mreži, DefiLlama, 7. 10. 2026. Popis prikazuje najveće protokole, ne sve: Robinhood Chain prema DefiLlami ima 307 protokola, a ostale mreže više stotina. Kuratori rizika (Steakhouse, Gauntlet) upravljaju trezorima na Morphu, pa se njihov TVL preklapa s Morphovim.</p>
+    <p class="caption">TVL (ukupna zaključana vrijednost) po protokolu na toj mreži, DefiLlama, <span data-live="dshort">7. 10. 2026.</span> Popis prikazuje najveće protokole, ne sve: Robinhood Chain prema DefiLlami ima 307 protokola, a ostale mreže više stotina. Kuratori rizika (Steakhouse, Gauntlet) upravljaju trezorima na Morphu, pa se njihov TVL preklapa s Morphovim.</p>
     <p class="caption">Vrste usluga i trenutni najviši prinosi na stablecoine: <a href="/prinosi">Prinosi na stablecoine</a>.</p>
   </section>
 
   <section id="stablecoini">
     <h2>Stablecoini na ovim mrežama</h2>
-    <p class="intro">USDT i USDC zajedno čine 84 % cijelog tržišta. Ostali u tablici su važni na barem jednoj od pet mreža.</p>
+    <p class="intro">USDT i USDC zajedno čine <span data-live="usdtusdc">84 %</span> cijelog tržišta. Ostali u tablici su važni na barem jednoj od pet mreža.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Stablecoin</th><th>Izdavatelj</th><th>Vrsta</th><th class="r">Ukupna ponuda</th><th>Gdje je među pet mreža</th></tr></thead>
         <tbody>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/tether">USDT</a></td><td>Tether</td><td>Fiat-pokriven</td><td class="r">184,2 mlrd. $</td><td>Ethereum, Solana, Arbitrum</td></tr>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/usd-coin">USDC</a></td><td>Circle</td><td>Fiat-pokriven, MiCA</td><td class="r">74,3 mlrd. $</td><td>Sve osim Robinhood Chaina; izvorni na svim L2</td></tr>
-          <tr><td class="sym">USDS / DAI</td><td>Sky (bivši Maker)</td><td>Kripto-pokriven</td><td class="r">11,6 mlrd. $</td><td>Ethereum, malo na Arbitrumu</td></tr>
-          <tr><td class="sym">USDe</td><td>Ethena</td><td>Sintetički, delta-neutralni</td><td class="r">5,0 mlrd. $</td><td>Ethereum, Base, Robinhood Chain</td></tr>
-          <tr><td class="sym">USD1</td><td>World Liberty Financial</td><td>Fiat-pokriven</td><td class="r">4,5 mlrd. $</td><td>Solana</td></tr>
-          <tr><td class="sym">USDG</td><td>Paxos (Global Dollar Network)</td><td>Fiat-pokriven</td><td class="r">3,1 mlrd. $</td><td>Robinhood Chain (66 % mreže)</td></tr>
-          <tr><td class="sym">PYUSD</td><td>PayPal / Paxos</td><td>Fiat-pokriven</td><td class="r">2,9 mlrd. $</td><td>Ethereum, Solana, Arbitrum</td></tr>
-          <tr><td class="sym">BUIDL</td><td>BlackRock / Securitize</td><td>Tokenizirani fond novca</td><td class="r">2,2 mlrd. $</td><td>Solana, Ethereum</td></tr>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/eurc">EURC</a></td><td>Circle</td><td>Fiat-pokriven, euro, MiCA</td><td class="r">≈ 421 mil. €</td><td>Ethereum 304 mil. €, Base 57 mil. €, Solana 44 mil. €</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/tether">USDT</a></td><td>Tether</td><td>Fiat-pokriven</td><td class="r" data-live="coin:USDT">184,2 mlrd. $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/usd-coin">USDC</a></td><td>Circle</td><td>Fiat-pokriven, MiCA</td><td class="r" data-live="coin:USDC">74,3 mlrd. $</td><td>Sve osim Robinhood Chaina; izvorni na svim L2</td></tr>
+          <tr><td class="sym">USDS / DAI</td><td>Sky (bivši Maker)</td><td>Kripto-pokriven</td><td class="r" data-live="coin:USDS+DAI">11,6 mlrd. $</td><td>Ethereum, malo na Arbitrumu</td></tr>
+          <tr><td class="sym">USDe</td><td>Ethena</td><td>Sintetički, delta-neutralni</td><td class="r" data-live="coin:USDe">5,0 mlrd. $</td><td>Ethereum, Base, Robinhood Chain</td></tr>
+          <tr><td class="sym">USD1</td><td>World Liberty Financial</td><td>Fiat-pokriven</td><td class="r" data-live="coin:USD1">4,5 mlrd. $</td><td>Solana</td></tr>
+          <tr><td class="sym">USDG</td><td>Paxos (Global Dollar Network)</td><td>Fiat-pokriven</td><td class="r" data-live="coin:USDG">3,1 mlrd. $</td><td>Robinhood Chain (<span data-live="usdghood">66 %</span> mreže)</td></tr>
+          <tr><td class="sym">PYUSD</td><td>PayPal / Paxos</td><td>Fiat-pokriven</td><td class="r" data-live="coin:PYUSD">2,9 mlrd. $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td class="sym">BUIDL</td><td>BlackRock / Securitize</td><td>Tokenizirani fond novca</td><td class="r" data-live="coin:BUIDL">2,2 mlrd. $</td><td>Solana, Ethereum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/eurc">EURC</a></td><td>Circle</td><td>Fiat-pokriven, euro, MiCA</td><td class="r" data-live="coin:EURC">≈ 421 mil. €</td><td data-live="eurc-where">Ethereum 304 mil. €, Base 57 mil. €, Solana 44 mil. €</td></tr>
         </tbody>
       </table>
     </div>
@@ -564,7 +572,7 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
 
   <footer id="izvori">
     <div class="eyebrow">Izvori</div>
-    <p>Iznosi su preuzeti s DefiLlame 7. listopada 2026. i mijenjaju se svakodnevno. Pravila MiCA-e i GENIUS Acta navedena su iz općeg znanja, bez provjere aktualnog stanja provedbe.</p>
+    <p>Iznosi su preuzeti s DefiLlame <span data-live="dlong">7. listopada 2026.</span> i mijenjaju se svakodnevno. Pravila MiCA-e i GENIUS Acta navedena su iz općeg znanja, bez provjere aktualnog stanja provedbe.</p>
     <p><a href="https://defillama.com/stablecoins/chains">Stablecoini po mrežama</a> · <a href="https://defillama.com/stablecoins">Popis stablecoina</a> · <a href="https://defillama.com/stablecoins/Ethereum">Ethereum</a> · <a href="https://defillama.com/stablecoins/Solana">Solana</a> · <a href="https://defillama.com/stablecoins/Base">Base</a> · <a href="https://defillama.com/stablecoins/Arbitrum">Arbitrum</a> · <a href="https://defillama.com/stablecoins/Robinhood%20Chain">Robinhood Chain</a> · <a href="https://defillama.com/stablecoin/eurc">EURC</a> · TVL: <a href="https://defillama.com/chain/ethereum">Ethereum</a>, <a href="https://defillama.com/chain/solana">Solana</a>, <a href="https://defillama.com/chain/base">Base</a>, <a href="https://defillama.com/chain/arbitrum">Arbitrum</a>, <a href="https://defillama.com/chain/robinhood-chain">Robinhood Chain</a> · <a href="https://forum.arbitrum.foundation/t/arbitrumdao-factsheet-robinhood-chain-mainnet-launch/31041">Robinhood Chain factsheet (Arbitrum forum)</a></p>
   </footer>
 </main>
@@ -624,8 +632,13 @@ window.makePie = function (items, c1, c2) {
   function fmt(v) { return v >= 1 ? nf.format(v) + " mlrd. $" : Math.round(v * 1000) + " mil. $"; }
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
-  var bars = document.getElementById("bars");
-  var max = nets[0].total;
+  var A = window.ATLAS = window.ATLAS || { hooks: [] };
+  var ND = { market: 307.788, cp: [["USDT",184.186],["USDC",74.304],["USDS",6.836],["USDe",4.977],["DAI",4.8]] };
+  A.nets = nets; A.netsData = ND; A.fmt = fmt;
+  function renderNets() {
+  var FIVE = nets.reduce(function (a, n) { return a + n.total; }, 0);
+  var bars = document.getElementById("bars"); bars.innerHTML = "";
+  var max = Math.max.apply(null, nets.map(function (n) { return n.total; }));
   nets.forEach(function (n) {
     var row = el("div", "bar-row");
     row.appendChild(el("span", "name", n.name));
@@ -639,14 +652,14 @@ window.makePie = function (items, c1, c2) {
   });
 
   var np = nets.map(function (n) { return { l: n.name, v: n.total, c: "var(--n-" + n.key + ")", s: fmt(n.total) }; });
-  np.push({ l: "Ostale mreže", v: 307.788 - 173.366, c: "var(--c-rest)", s: fmt(307.788 - 173.366) });
-  document.getElementById("pie-nets").appendChild(window.makePie(np, "307,8 mlrd.", "ukupno"));
-  var cp = [["USDT",184.186],["USDC",74.304],["USDS",6.836],["USDe",4.977],["DAI",4.8]];
+  np.push({ l: "Ostale mreže", v: ND.market - FIVE, c: "var(--c-rest)", s: fmt(ND.market - FIVE) });
+  var pn = document.getElementById("pie-nets"); pn.innerHTML = ""; pn.appendChild(window.makePie(np, fmt(ND.market).replace(" $", ""), "ukupno"));
+  var cp = ND.cp;
   var cpi = cp.map(function (m) { return { l: m[0], v: m[1], c: C[m[0]], s: fmt(m[1]) }; });
-  var crest = 307.788 - cp.reduce(function (a, m) { return a + m[1]; }, 0);
+  var crest = ND.market - cp.reduce(function (a, m) { return a + m[1]; }, 0);
   cpi.push({ l: "Ostali", v: crest, c: "var(--c-rest)", s: fmt(crest) });
-  document.getElementById("pie-coins").appendChild(window.makePie(cpi, "307,8 mlrd.", "ukupno"));
-  var box = document.getElementById("nets");
+  var pc = document.getElementById("pie-coins"); pc.innerHTML = ""; pc.appendChild(window.makePie(cpi, fmt(ND.market).replace(" $", ""), "ukupno"));
+  var box = document.getElementById("nets"); box.innerHTML = "";
   nets.forEach(function (n) {
     var card = el("article", "net"); card.dataset.n = n.key;
     var head = el("div", "net-head");
@@ -685,6 +698,8 @@ window.makePie = function (items, c1, c2) {
     card.appendChild(el("p", "say", n.say));
     box.appendChild(card);
   });
+  }
+  renderNets(); A.hooks.push(renderNets);
 })();
 </script>
 
@@ -708,7 +723,9 @@ window.makePie = function (items, c1, c2) {
       p: [["Morpho Blue","Kreditiranje","605 mil. $","Tržišta i trezori za USDG i druge stablecoine."],["Steakhouse Financial","Kurator rizika","536 mil. $","Upravlja trezorima na Morphu."],["Uniswap","DEX","244 mil. $","Zamjene stablecoina i tokena."],["Lighter","Burza / perps","113 mil. $","Trgovanje uz stablecoin kao maržu."],["Arcus","Burza","43 mil. $","Trgovanje."],["Fables","DEX","42 mil. $","Zamjene."],["Grove Finance","Alokator kapitala","15 mil. $","Sky alokacija kapitala."],["Spark","Kreditiranje","15 mil. $","USDS likvidnost."]] }
   ];
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
-  var box = document.getElementById("defi-list");
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.defi = D;
+  function renderDefi() {
+  var box = document.getElementById("defi-list"); box.innerHTML = "";
   D.forEach(function (n) {
     var c = el("article", "dnet"); c.dataset.n = n.key;
     var h = el("div", "dnet-head"); h.appendChild(el("h3", null, n.name));
@@ -740,6 +757,8 @@ window.makePie = function (items, c1, c2) {
     tb.appendChild(body); w.appendChild(tb); c.appendChild(w);
     box.appendChild(c);
   });
+  }
+  renderDefi(); A.hooks.push(renderDefi);
 })();
 </script>
 
@@ -900,6 +919,7 @@ window.makePie = function (items, c1, c2) {
   function set(e) { equal = e; bR.setAttribute("aria-pressed", e ? "false" : "true"); bE.setAttribute("aria-pressed", e ? "true" : "false"); render(); }
   bR.addEventListener("click", function () { set(false); }); bE.addEventListener("click", function () { set(true); });
   render();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.bubble = chains; A.hooks.push(render);
 })();
 </script>
 <script>
@@ -971,7 +991,7 @@ window.makePie = function (items, c1, c2) {
     svg.appendChild(el("path", { d: line, "class": "ln" }));
     var lp = pts[pts.length - 1];
     svg.appendChild(el("circle", { cx: lp[0], cy: lp[1], r: 4, "class": "pt" }));
-    svg.appendChild(el("text", { x: lp[0] - 6, y: lp[1] + 20, "text-anchor": "end", "font-size": small ? 11 : 12, "class": "endlbl" }, small ? "307,8 mlrd." : "307,8 mlrd. $"));
+    svg.appendChild(el("text", { x: lp[0] - 6, y: lp[1] + 20, "text-anchor": "end", "font-size": small ? 11 : 12, "class": "endlbl" }, small ? fmt(D[D.length - 1][2]).replace(" $", "") : fmt(D[D.length - 1][2])));
     var rad = small ? 7 : 8, rows = [-1e9, -1e9, -1e9];
     E.forEach(function (e, i) {
       var x = X(t(e[0], e[1])), k = 0;
@@ -1011,6 +1031,7 @@ window.makePie = function (items, c1, c2) {
   });
   var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { draw(); reset(); }, 120); });
   draw(); reset();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.hist = D; A.hooks.push(function () { draw(); reset(); });
 })();
 </script>
 <script>
@@ -1265,6 +1286,13 @@ window.makePie = function (items, c1, c2) {
   });
   var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(draw, 120); });
   draw();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.top = DATA;
+  A.hooks.push(function () {
+    var mm = {}; S.forEach(function (s) { DATA[s[0]].forEach(function (d) { mm[d[0]] = 1; }); }); months = Object.keys(mm).sort();
+    idx = S.map(function (s) { var m = {}; DATA[s[0]].forEach(function (d) { m[d[0]] = d[1]; }); return m; });
+    btns.forEach(function (b, i) { var d = DATA[S[i][0]]; b.querySelector("span").textContent = fmt(d[d.length - 1][1]); });
+    draw();
+  });
 })();
 </script>
 <script>
@@ -1399,5 +1427,115 @@ window.makePie = function (items, c1, c2) {
 })();
 </script>
 
+<script>
+(function () {
+  // Svježi podaci s DefiLlame: pri otvaranju stranice i na gumb Osvježi. Svaki odjeljak se ponovno iscrta iz istih nizova.
+  var A = window.ATLAS = window.ATLAS || { hooks: [] };
+  var EN = document.documentElement.lang === "en";
+  var CH = { eth: "Ethereum", sol: "Solana", base: "Base", arb: "Arbitrum", hood: "Robinhood Chain" };
+  var COINS = { USDT: 1, USDC: 1, USDS: 1, USDe: 1, DAI: 1, USD1: 1, USDG: 1, PYUSD: 1, RLUSD: 1, USYC: 1, EURC: 1, BUIDL: 1 };
+  var B = 1e9, loc = EN ? "en-US" : "hr-HR";
+  var nf1 = new Intl.NumberFormat(loc, { maximumFractionDigits: 1 }), nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+  var MONTHS = EN ? ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    : ["siječnja","veljače","ožujka","travnja","svibnja","lipnja","srpnja","kolovoza","rujna","listopada","studenoga","prosinca"];
+  var MSHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmt(v) { return A.fmt ? A.fmt(v) : nf1.format(v) + (EN ? " bn $" : " mlrd. $"); }
+  function pct(x) { return Math.round(x * 100) + (EN ? "%" : " %"); }
+  function eur(v) { return nf0.format(v / 1e6) + (EN ? " M €" : " mil. €"); }
+  function hm(d) { return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function dlong(d) { return EN ? d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear() : d.getDate() + ". " + MONTHS[d.getMonth()] + " " + d.getFullYear() + "."; }
+  function dshort(d) { return EN ? d.getDate() + " " + MSHORT[d.getMonth()] + " " + d.getFullYear() : d.getDate() + ". " + (d.getMonth() + 1) + ". " + d.getFullYear() + "."; }
+  function setAll(key, html) { document.querySelectorAll('[data-live="' + key + '"]').forEach(function (e) { e.innerHTML = html; }); }
+  function chainVal(d, sym, key) { var c = d.coins[sym]; return c && c.chains && c.chains[CH[key]] ? c.chains[CH[key]] : null; }
+  function isRest(name) { return !COINS[name]; }
 
+  function apply(d) {
+    var market = d.market / B, sup = {};
+    Object.keys(CH).forEach(function (k) { if (d.supply[k]) sup[k] = d.supply[k] / B; });
+    // Mreže: ukupno i sastav
+    (A.nets || []).forEach(function (n) {
+      if (sup[n.key]) n.total = sup[n.key];
+      n.mix.forEach(function (m) { var v = chainVal(d, m[0], n.key); if (v) m[1] = v / B; });
+    });
+    if (A.netsData) {
+      A.netsData.market = market;
+      A.netsData.cp.forEach(function (m) { var c = d.coins[m[0]]; if (c && c.total) m[1] = c.total / B; });
+    }
+    // Bubblemap: stablecoini i protokoli po mrežama
+    (A.bubble || []).forEach(function (ch) {
+      var named = 0, rest = null;
+      ch.coins.forEach(function (m) {
+        if (isRest(m[0])) { rest = m; return; }
+        var v = chainVal(d, m[0], ch.key); if (v) m[1] = v / B; named += m[1];
+      });
+      if (rest && sup[ch.key]) rest[1] = Math.max(0, sup[ch.key] - named);
+      ch.prot.forEach(function (p) { var x = d.protocols[p[0]], v = x && x[CH[ch.key]]; if (v) p[p.length - 1] = v / B; });
+    });
+    // DeFi kartice: TVL mreže i protokola
+    (A.defi || []).forEach(function (n) {
+      if (d.tvl[n.key]) n.tvl = fmt(d.tvl[n.key] / B);
+      n.p.forEach(function (r) { var x = d.protocols[r[0]], v = x && x[CH[n.key]]; if (v) r[2] = fmt(v / B); });
+    });
+    // Povijest: zadnja točka je današnje stanje
+    var now = new Date(d.updated), y = now.getFullYear(), mo = now.getMonth() + 1;
+    if (A.hist) {
+      var last = A.hist[A.hist.length - 1];
+      if (last[0] === y && last[1] === mo) last[2] = market; else if (last[0] < y || (last[0] === y && last[1] < mo)) A.hist.push([y, mo, market]);
+    }
+    if (A.top) {
+      var key = y + "-" + String(mo).padStart(2, "0");
+      Object.keys(A.top).forEach(function (sym) {
+        var c = d.coins[sym], arr = A.top[sym]; if (!c || !c.total || !arr.length) return;
+        var l = arr[arr.length - 1];
+        if (l[0] === key) l[1] = c.total / 1e6; else if (l[0] < key) arr.push([key, c.total / 1e6]);
+      });
+    }
+    // Brojke u tekstu
+    var five = 0; Object.keys(sup).forEach(function (k) { five += sup[k]; });
+    var allFive = Object.keys(CH).every(function (k) { return sup[k]; });
+    if (allFive) {
+      setAll("five", fmt(five)); setAll("five0", nf0.format(five) + (EN ? " bn $" : " mlrd. $"));
+      setAll("share", pct(five / market)); setAll("ethshare", pct(sup.eth / five));
+      var r = sup.eth / sup.sol, l2 = sup.base + sup.arb + sup.hood;
+      setAll("ethsol", EN ? nf1.format(r) + " times as many" : nf1.format(r) + " puta više");
+      setAll("l2", fmt(l2));
+      setAll("l2cmp", l2 < sup.sol ? (EN ? "less than Solana alone" : "manje od same Solane") : (EN ? "more than Solana alone" : "više od same Solane"));
+    }
+    setAll("market", fmt(market)); setAll("market0", nf0.format(market) + (EN ? " bn $" : " mlrd. $"));
+    var ug = chainVal(d, "USDG", "hood"); if (ug && sup.hood) setAll("usdghood", pct(ug / B / sup.hood));
+    var ut = d.coins.USDT, uc = d.coins.USDC;
+    if (ut && uc) setAll("usdtusdc", pct((ut.total + uc.total) / d.market));
+    ["USDT", "USDC", "USDe", "USD1", "USDG", "PYUSD", "BUIDL"].forEach(function (s) { var c = d.coins[s]; if (c && c.total) setAll("coin:" + s, fmt(c.total / B)); });
+    if (d.coins.USDS && d.coins.DAI) setAll("coin:USDS+DAI", fmt((d.coins.USDS.total + d.coins.DAI.total) / B));
+    var e = d.coins.EURC;
+    if (e && e.total) {
+      setAll("coin:EURC", "≈ " + eur(e.total));
+      var parts = [["Ethereum", "eth"], ["Base", "base"], ["Solana", "sol"]].map(function (x) { var v = e.chains[x[0]]; return v ? x[0] + " " + eur(v) : null; }).filter(Boolean);
+      if (parts.length) setAll("eurc-where", parts.join(", "));
+    }
+    setAll("dlong", dlong(now)); setAll("dshort", dshort(now));
+    setAll("asof", (EN ? "As of " : "Stanje na dan ") + dlong(now) + (EN ? ", " : " u ") + hm(now));
+    setAll("mcuntil", EN ? "through last month, plus the current value for " + MONTHS[now.getMonth()] + " " + y + "." : "do prošlog mjeseca, uz trenutnu vrijednost za " + ["siječanj","veljaču","ožujak","travanj","svibanj","lipanj","srpanj","kolovoz","rujan","listopad","studeni","prosinac"][now.getMonth()] + " " + y + ".");
+    A.hooks.forEach(function (f) { try { f(); } catch (err) { if (window.console) console.error(err); } });
+    return now;
+  }
 
+  var box = document.getElementById("live"), txt = document.getElementById("live-text"), btn = document.getElementById("live-refresh");
+  function load(fresh) {
+    btn.disabled = true; box.className = "live"; txt.textContent = EN ? "Loading the latest data…" : "Učitavam najnovije podatke…";
+    fetch("/api/atlas" + (fresh ? "?fresh=1" : "")).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "HTTP " + r.status); return j; }); })
+      .then(function (d) {
+        var now = apply(d);
+        box.className = "live ok";
+        txt.textContent = (EN ? "Live DefiLlama data, " : "Podaci DefiLlame, ") + dshort(now) + (EN ? ", " : " u ") + hm(now);
+      })
+      .catch(function (err) {
+        box.className = "live err";
+        txt.textContent = (EN ? "The latest data could not be loaded (" : "Najnoviji podaci se nisu mogli učitati (") + (err && err.message || "") + (EN ? "). Showing the snapshot from 7 Oct 2026." : "). Prikazano je stanje od 7. 10. 2026.");
+      })
+      .then(function () { btn.disabled = false; });
+  }
+  btn.addEventListener("click", function () { load(true); });
+  load(false);
+})();
+</script>

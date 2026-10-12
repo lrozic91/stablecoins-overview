@@ -161,12 +161,19 @@ footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
 }
 header.hero { margin-top: 24px; padding: 32px clamp(18px, 4vw, 36px); border-radius: 10px; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); }
 header.hero .lead, header.hero .eyebrow { color: var(--hero-ink); opacity: 0.8; }
+.live { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 0.88rem; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.5; flex: none; }
+.live.ok .dot { background: #3ccf8e; opacity: 1; }
+.live.err .dot { background: #f2867e; opacity: 1; }
+.live button { font: inherit; font-size: 0.85rem; border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.live button:disabled { opacity: 0.6; cursor: progress; }
 .fig { border: 0; }
 .fig.t1 { background: var(--t1); } .fig.t1 b { color: var(--t1-ink); }
 .fig.t2 { background: var(--t2); } .fig.t2 b { color: var(--t2-ink); }
 .fig.t3 { background: var(--t3); } .fig.t3 b { color: var(--t3-ink); }
 .fig.t4 { background: var(--t4); } .fig.t4 b { color: var(--t4-ink); }
 .fig span { color: var(--hero-ink); opacity: 0.75; }
+.fig span span { font-size: inherit; color: inherit; opacity: 1; }
 section h2 { color: var(--h2); }
 th { background: var(--thead); }
 .net { border-top: 4px solid var(--nc); padding-top: 0; overflow: hidden; }
@@ -256,20 +263,21 @@ th { background: var(--thead); }
 
 <main class="wrap">
   <header class="hero">
-    <div class="eyebrow">As of 7 October 2026 · data: DefiLlama</div>
+    <div class="eyebrow"><span data-live="asof">As of 7 October 2026</span> · data: DefiLlama</div>
     <h1>Stablecoins on Ethereum, Solana, Base, Arbitrum and Robinhood Chain</h1>
     <p class="lead">How many stablecoins each of the five networks holds, which stablecoin dominates on it and which token powers the network.</p>
     <div class="figures">
-      <div class="fig t1"><b class="num">173.4 bn $</b><span>in stablecoins on these five networks</span></div>
-      <div class="fig t2"><b class="num">56%</b><span>of the total market of 307.8 bn $</span></div>
-      <div class="fig t3"><b class="num">84%</b><span>of that 173 bn $ is on Ethereum alone</span></div>
+      <div class="fig t1"><b class="num" data-live="five">173.4 bn $</b><span>in stablecoins on these five networks</span></div>
+      <div class="fig t2"><b class="num" data-live="share">56%</b><span>of the total market of <span data-live="market">307.8 bn $</span></span></div>
+      <div class="fig t3"><b class="num" data-live="ethshare">84%</b><span>of that <span data-live="five0">173 bn $</span> is on Ethereum alone</span></div>
       <div class="fig t4"><b class="num">USDC</b><span>dominates on Solana, Base and Arbitrum</span></div>
     </div>
+    <div class="live" id="live"><span class="dot"></span><span id="live-text">Snapshot from 7 Oct 2026</span><button type="button" id="live-refresh">Refresh</button></div>
   </header>
 
   <section id="kratko">
     <h2>A brief history of stablecoins</h2>
-    <p class="intro">A stablecoin is a token whose value is pegged to the dollar or another currency. In twelve years it has grown from an experiment on Bitcoin into a 307.8 bn $ market.</p>
+    <p class="intro">A stablecoin is a token whose value is pegged to the dollar or another currency. In twelve years it has grown from an experiment on Bitcoin into a <span data-live="market">307.8 bn $</span> market.</p>
     <ol class="eras">
       <li><span class="yr">2014 – 2017</span><div><h3>Beginnings</h3><p>In 2014 Tether issues the first dollar token on Bitcoin (the Omni layer), backed by dollars in a bank. Exchanges use it instead of dollars because banks are reluctant to open accounts for them. In December 2017 MakerDAO launches DAI, the first decentralized stablecoin backed by cryptocurrency.</p></div></li>
       <li><span class="yr">2018 – 2019</span><div><h3>A regulated dollar on the blockchain</h3><p>In 2018 Circle and Coinbase launch USDC with monthly reserve attestations, followed by Paxos and Gemini. In 2019 Facebook announces Libra, which for the first time draws the attention of governments and central banks.</p></div></li>
@@ -290,7 +298,7 @@ th { background: var(--thead); }
     <div class="bmap">
       <div class="bmap-head"><h3>Stablecoins by network</h3><div class="legend" id="bm1-leg"></div></div>
       <div id="bm1"></div>
-      <div class="caption">Stablecoin supply on the network, DefiLlama, 7 Oct 2026. “Others” are smaller stablecoins on that network.</div>
+      <div class="caption">Stablecoin supply on the network, DefiLlama, <span data-live="dshort">7 Oct 2026.</span> “Others” are smaller stablecoins on that network.</div>
     </div>
     <div class="bmap">
       <div class="bmap-head"><h3>DeFi protocols by network</h3><div class="legend" id="bm2-leg"></div></div>
@@ -329,7 +337,7 @@ th { background: var(--thead); }
   <section id="povijest">
     <div class="eyebrow">History</div>
     <h2>How total stablecoin supply grew, 2014 – 2026</h2>
-    <p class="intro">From a few million dollars of USDT in 2014 to about 308 bn $ today. The biggest jump came in 2020 and 2021, and the only major decline came in 2022 after the collapse of Terra's UST.</p>
+    <p class="intro">From a few million dollars of USDT in 2014 to about <span data-live="market0">308 bn $</span> today. The biggest jump came in 2020 and 2021, and the only major decline came in 2022 after the collapse of Terra's UST.</p>
     <div class="hist-card">
       <div class="hist-top">
         <div class="hist-read" id="hist-read" aria-live="polite"></div>
@@ -340,7 +348,7 @@ th { background: var(--thead); }
       </div>
       <svg id="hist-svg" role="img" aria-label="Total stablecoin supply from 2014 to 2026 with key events marked"></svg>
       <ol class="hist-ev" id="hist-ev"></ol>
-      <p class="hist-note">Total supply of all stablecoins pegged to the dollar and other currencies, across all networks combined. Values are approximate, at the end of each period. Up to 2019 they are based on the supply of USDT, USDC, TUSD, PAX and DAI, and from 2020 on DefiLlama data. Last point: DefiLlama, 7 Oct 2026.</p>
+      <p class="hist-note">Total supply of all stablecoins pegged to the dollar and other currencies, across all networks combined. Values are approximate, at the end of each period. Up to 2019 they are based on the supply of USDT, USDC, TUSD, PAX and DAI, and from 2020 on DefiLlama data. Last point: DefiLlama, <span data-live="dshort">7 Oct 2026</span>.</p>
     </div>
   <style>
 /* Top 10 na jednom grafu: linije po stablecoinu, fiksni redoslijed boja, 9. serija neutralna isprekidana */
@@ -421,7 +429,7 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
       <div class="mc-legend" id="mc-legend"></div>
       <div class="mc-wrap"><svg id="mc-svg" role="img" aria-label="Supply of the ten largest stablecoins from 2015 to 2026"></svg><div class="mc-tip" id="mc-tip"></div></div>
     </div>
-    <p class="hist-note">Month-end supply according to DefiLlama, summed across all networks, through September 2026. For USDT up to the end of 2020 and for USDG up to June 2025, CoinMarketCap is used, because DefiLlama does not track every network for that period (e.g. USDT on Bitcoin's Omni protocol). USYC is Circle's tokenized money market fund; DefiLlama lists it as a stablecoin, and its price slowly rises above $1. DAI is shown from November 2019, when it replaced the first version (SAI) from December 2017.</p>
+    <p class="hist-note">Month-end supply according to DefiLlama, summed across all networks, <span data-live="mcuntil">through September 2026.</span> For USDT up to the end of 2020 and for USDG up to June 2025, CoinMarketCap is used, because DefiLlama does not track every network for that period (e.g. USDT on Bitcoin's Omni protocol). USYC is Circle's tokenized money market fund; DefiLlama lists it as a stablecoin, and its price slowly rises above $1. DAI is shown from November 2019, when it replaced the first version (SAI) from December 2017.</p>
   </section>
 <style>
 /* Peg: po stablecoinu raspon cijene unutar mjeseca (crtica) i cijena na kraju mjeseca (linija), os fiksno 0,85–1,15 $ */
@@ -469,10 +477,10 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
 
   <section id="usporedba">
     <h2>Supply comparison</h2>
-    <p class="intro">Ethereum has almost nine times as many stablecoins as Solana. The three L2 networks together hold 10.1 bn $, less than Solana alone.</p>
+    <p class="intro">Ethereum has <span data-live="ethsol">almost nine times as many</span> stablecoins as Solana. The three L2 networks together hold <span data-live="l2">10.1 bn $</span>, <span data-live="l2cmp">less than Solana alone</span>.</p>
     <div class="chart-card">
             <div class="bars" id="bars"></div>
-      <div class="caption">Total stablecoin supply on the network in USD. Source: DefiLlama, 7 Oct 2026.</div>
+      <div class="caption">Total stablecoin supply on the network in USD. Source: DefiLlama, <span data-live="dshort">7 Oct 2026.</span></div>
     </div>
     <div class="pies">
       <div class="pie-card"><h3>Network share of the whole stablecoin market</h3><div id="pie-nets"></div></div>
@@ -490,26 +498,26 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
     <h2>DeFi protocols and stablecoin use</h2>
     <p class="intro">Stablecoins play a different main role on each network. On Ethereum it is lending and yield, on Solana trading, on Base and Robinhood Chain borrowing via Morpho, and on Arbitrum lending and derivatives.</p>
     <div class="defi" id="defi-list"></div>
-    <p class="caption">TVL (total value locked) per protocol on that network, DefiLlama, 7 Oct 2026. The list shows the largest protocols, not all of them: according to DefiLlama, Robinhood Chain has 307 protocols and the other networks several hundred. Risk curators (Steakhouse, Gauntlet) manage vaults on Morpho, so their TVL overlaps with Morpho's.</p>
+    <p class="caption">TVL (total value locked) per protocol on that network, DefiLlama, <span data-live="dshort">7 Oct 2026.</span> The list shows the largest protocols, not all of them: according to DefiLlama, Robinhood Chain has 307 protocols and the other networks several hundred. Risk curators (Steakhouse, Gauntlet) manage vaults on Morpho, so their TVL overlaps with Morpho's.</p>
     <p class="caption">Types of services and the current highest stablecoin yields: <a href="/en/yields">Stablecoin yields</a>.</p>
   </section>
 
   <section id="stablecoini">
     <h2>Stablecoins on these networks</h2>
-    <p class="intro">USDT and USDC together make up 84% of the whole market. The others in the table matter on at least one of the five networks.</p>
+    <p class="intro">USDT and USDC together make up <span data-live="usdtusdc">84%</span> of the whole market. The others in the table matter on at least one of the five networks.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Stablecoin</th><th>Issuer</th><th>Type</th><th class="r">Total supply</th><th>Where among the five networks</th></tr></thead>
         <tbody>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/tether">USDT</a></td><td>Tether</td><td>Fiat-backed</td><td class="r">184.2 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/usd-coin">USDC</a></td><td>Circle</td><td>Fiat-backed, MiCA</td><td class="r">74.3 bn $</td><td>All except Robinhood Chain; native on all L2s</td></tr>
-          <tr><td class="sym">USDS / DAI</td><td>Sky (formerly Maker)</td><td>Crypto-backed</td><td class="r">11.6 bn $</td><td>Ethereum, a little on Arbitrum</td></tr>
-          <tr><td class="sym">USDe</td><td>Ethena</td><td>Synthetic, delta-neutral</td><td class="r">5.0 bn $</td><td>Ethereum, Base, Robinhood Chain</td></tr>
-          <tr><td class="sym">USD1</td><td>World Liberty Financial</td><td>Fiat-backed</td><td class="r">4.5 bn $</td><td>Solana</td></tr>
-          <tr><td class="sym">USDG</td><td>Paxos (Global Dollar Network)</td><td>Fiat-backed</td><td class="r">3.1 bn $</td><td>Robinhood Chain (66% of the network)</td></tr>
-          <tr><td class="sym">PYUSD</td><td>PayPal / Paxos</td><td>Fiat-backed</td><td class="r">2.9 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
-          <tr><td class="sym">BUIDL</td><td>BlackRock / Securitize</td><td>Tokenized money market fund</td><td class="r">2.2 bn $</td><td>Solana, Ethereum</td></tr>
-          <tr><td><a class="sym" href="https://defillama.com/stablecoin/eurc">EURC</a></td><td>Circle</td><td>Fiat-backed, euro, MiCA</td><td class="r">≈ 421 M €</td><td>Ethereum 304 M €, Base 57 M €, Solana 44 M €</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/tether">USDT</a></td><td>Tether</td><td>Fiat-backed</td><td class="r" data-live="coin:USDT">184.2 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/usd-coin">USDC</a></td><td>Circle</td><td>Fiat-backed, MiCA</td><td class="r" data-live="coin:USDC">74.3 bn $</td><td>All except Robinhood Chain; native on all L2s</td></tr>
+          <tr><td class="sym">USDS / DAI</td><td>Sky (formerly Maker)</td><td>Crypto-backed</td><td class="r" data-live="coin:USDS+DAI">11.6 bn $</td><td>Ethereum, a little on Arbitrum</td></tr>
+          <tr><td class="sym">USDe</td><td>Ethena</td><td>Synthetic, delta-neutral</td><td class="r" data-live="coin:USDe">5.0 bn $</td><td>Ethereum, Base, Robinhood Chain</td></tr>
+          <tr><td class="sym">USD1</td><td>World Liberty Financial</td><td>Fiat-backed</td><td class="r" data-live="coin:USD1">4.5 bn $</td><td>Solana</td></tr>
+          <tr><td class="sym">USDG</td><td>Paxos (Global Dollar Network)</td><td>Fiat-backed</td><td class="r" data-live="coin:USDG">3.1 bn $</td><td>Robinhood Chain (<span data-live="usdghood">66%</span> of the network)</td></tr>
+          <tr><td class="sym">PYUSD</td><td>PayPal / Paxos</td><td>Fiat-backed</td><td class="r" data-live="coin:PYUSD">2.9 bn $</td><td>Ethereum, Solana, Arbitrum</td></tr>
+          <tr><td class="sym">BUIDL</td><td>BlackRock / Securitize</td><td>Tokenized money market fund</td><td class="r" data-live="coin:BUIDL">2.2 bn $</td><td>Solana, Ethereum</td></tr>
+          <tr><td><a class="sym" href="https://defillama.com/stablecoin/eurc">EURC</a></td><td>Circle</td><td>Fiat-backed, euro, MiCA</td><td class="r" data-live="coin:EURC">≈ 421 M €</td><td data-live="eurc-where">Ethereum 304 M €, Base 57 M €, Solana 44 M €</td></tr>
         </tbody>
       </table>
     </div>
@@ -564,7 +572,7 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
 
   <footer id="izvori">
     <div class="eyebrow">Sources</div>
-    <p>Amounts were taken from DefiLlama on 7 October 2026 and change daily. The MiCA and GENIUS Act rules are stated from general knowledge, without checking the current state of implementation.</p>
+    <p>Amounts were taken from DefiLlama on <span data-live="dlong">7 October 2026</span> and change daily. The MiCA and GENIUS Act rules are stated from general knowledge, without checking the current state of implementation.</p>
     <p><a href="https://defillama.com/stablecoins/chains">Stablecoins by network</a> · <a href="https://defillama.com/stablecoins">List of stablecoins</a> · <a href="https://defillama.com/stablecoins/Ethereum">Ethereum</a> · <a href="https://defillama.com/stablecoins/Solana">Solana</a> · <a href="https://defillama.com/stablecoins/Base">Base</a> · <a href="https://defillama.com/stablecoins/Arbitrum">Arbitrum</a> · <a href="https://defillama.com/stablecoins/Robinhood%20Chain">Robinhood Chain</a> · <a href="https://defillama.com/stablecoin/eurc">EURC</a> · TVL: <a href="https://defillama.com/chain/ethereum">Ethereum</a>, <a href="https://defillama.com/chain/solana">Solana</a>, <a href="https://defillama.com/chain/base">Base</a>, <a href="https://defillama.com/chain/arbitrum">Arbitrum</a>, <a href="https://defillama.com/chain/robinhood-chain">Robinhood Chain</a> · <a href="https://forum.arbitrum.foundation/t/arbitrumdao-factsheet-robinhood-chain-mainnet-launch/31041">Robinhood Chain factsheet (Arbitrum forum)</a></p>
   </footer>
 </main>

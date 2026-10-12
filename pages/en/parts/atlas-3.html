@@ -250,6 +250,13 @@
   });
   var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(draw, 120); });
   draw();
+  var A = window.ATLAS = window.ATLAS || { hooks: [] }; A.top = DATA;
+  A.hooks.push(function () {
+    var mm = {}; S.forEach(function (s) { DATA[s[0]].forEach(function (d) { mm[d[0]] = 1; }); }); months = Object.keys(mm).sort();
+    idx = S.map(function (s) { var m = {}; DATA[s[0]].forEach(function (d) { m[d[0]] = d[1]; }); return m; });
+    btns.forEach(function (b, i) { var d = DATA[S[i][0]]; b.querySelector("span").textContent = fmt(d[d.length - 1][1]); });
+    draw();
+  });
 })();
 </script>
 <script>
@@ -384,5 +391,115 @@
 })();
 </script>
 
+<script>
+(function () {
+  // Svježi podaci s DefiLlame: pri otvaranju stranice i na gumb Osvježi. Svaki odjeljak se ponovno iscrta iz istih nizova.
+  var A = window.ATLAS = window.ATLAS || { hooks: [] };
+  var EN = document.documentElement.lang === "en";
+  var CH = { eth: "Ethereum", sol: "Solana", base: "Base", arb: "Arbitrum", hood: "Robinhood Chain" };
+  var COINS = { USDT: 1, USDC: 1, USDS: 1, USDe: 1, DAI: 1, USD1: 1, USDG: 1, PYUSD: 1, RLUSD: 1, USYC: 1, EURC: 1, BUIDL: 1 };
+  var B = 1e9, loc = EN ? "en-US" : "hr-HR";
+  var nf1 = new Intl.NumberFormat(loc, { maximumFractionDigits: 1 }), nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+  var MONTHS = EN ? ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    : ["siječnja","veljače","ožujka","travnja","svibnja","lipnja","srpnja","kolovoza","rujna","listopada","studenoga","prosinca"];
+  var MSHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmt(v) { return A.fmt ? A.fmt(v) : nf1.format(v) + (EN ? " bn $" : " mlrd. $"); }
+  function pct(x) { return Math.round(x * 100) + (EN ? "%" : " %"); }
+  function eur(v) { return nf0.format(v / 1e6) + (EN ? " M €" : " mil. €"); }
+  function hm(d) { return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function dlong(d) { return EN ? d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear() : d.getDate() + ". " + MONTHS[d.getMonth()] + " " + d.getFullYear() + "."; }
+  function dshort(d) { return EN ? d.getDate() + " " + MSHORT[d.getMonth()] + " " + d.getFullYear() : d.getDate() + ". " + (d.getMonth() + 1) + ". " + d.getFullYear() + "."; }
+  function setAll(key, html) { document.querySelectorAll('[data-live="' + key + '"]').forEach(function (e) { e.innerHTML = html; }); }
+  function chainVal(d, sym, key) { var c = d.coins[sym]; return c && c.chains && c.chains[CH[key]] ? c.chains[CH[key]] : null; }
+  function isRest(name) { return !COINS[name]; }
 
+  function apply(d) {
+    var market = d.market / B, sup = {};
+    Object.keys(CH).forEach(function (k) { if (d.supply[k]) sup[k] = d.supply[k] / B; });
+    // Mreže: ukupno i sastav
+    (A.nets || []).forEach(function (n) {
+      if (sup[n.key]) n.total = sup[n.key];
+      n.mix.forEach(function (m) { var v = chainVal(d, m[0], n.key); if (v) m[1] = v / B; });
+    });
+    if (A.netsData) {
+      A.netsData.market = market;
+      A.netsData.cp.forEach(function (m) { var c = d.coins[m[0]]; if (c && c.total) m[1] = c.total / B; });
+    }
+    // Bubblemap: stablecoini i protokoli po mrežama
+    (A.bubble || []).forEach(function (ch) {
+      var named = 0, rest = null;
+      ch.coins.forEach(function (m) {
+        if (isRest(m[0])) { rest = m; return; }
+        var v = chainVal(d, m[0], ch.key); if (v) m[1] = v / B; named += m[1];
+      });
+      if (rest && sup[ch.key]) rest[1] = Math.max(0, sup[ch.key] - named);
+      ch.prot.forEach(function (p) { var x = d.protocols[p[0]], v = x && x[CH[ch.key]]; if (v) p[p.length - 1] = v / B; });
+    });
+    // DeFi kartice: TVL mreže i protokola
+    (A.defi || []).forEach(function (n) {
+      if (d.tvl[n.key]) n.tvl = fmt(d.tvl[n.key] / B);
+      n.p.forEach(function (r) { var x = d.protocols[r[0]], v = x && x[CH[n.key]]; if (v) r[2] = fmt(v / B); });
+    });
+    // Povijest: zadnja točka je današnje stanje
+    var now = new Date(d.updated), y = now.getFullYear(), mo = now.getMonth() + 1;
+    if (A.hist) {
+      var last = A.hist[A.hist.length - 1];
+      if (last[0] === y && last[1] === mo) last[2] = market; else if (last[0] < y || (last[0] === y && last[1] < mo)) A.hist.push([y, mo, market]);
+    }
+    if (A.top) {
+      var key = y + "-" + String(mo).padStart(2, "0");
+      Object.keys(A.top).forEach(function (sym) {
+        var c = d.coins[sym], arr = A.top[sym]; if (!c || !c.total || !arr.length) return;
+        var l = arr[arr.length - 1];
+        if (l[0] === key) l[1] = c.total / 1e6; else if (l[0] < key) arr.push([key, c.total / 1e6]);
+      });
+    }
+    // Brojke u tekstu
+    var five = 0; Object.keys(sup).forEach(function (k) { five += sup[k]; });
+    var allFive = Object.keys(CH).every(function (k) { return sup[k]; });
+    if (allFive) {
+      setAll("five", fmt(five)); setAll("five0", nf0.format(five) + (EN ? " bn $" : " mlrd. $"));
+      setAll("share", pct(five / market)); setAll("ethshare", pct(sup.eth / five));
+      var r = sup.eth / sup.sol, l2 = sup.base + sup.arb + sup.hood;
+      setAll("ethsol", EN ? nf1.format(r) + " times as many" : nf1.format(r) + " puta više");
+      setAll("l2", fmt(l2));
+      setAll("l2cmp", l2 < sup.sol ? (EN ? "less than Solana alone" : "manje od same Solane") : (EN ? "more than Solana alone" : "više od same Solane"));
+    }
+    setAll("market", fmt(market)); setAll("market0", nf0.format(market) + (EN ? " bn $" : " mlrd. $"));
+    var ug = chainVal(d, "USDG", "hood"); if (ug && sup.hood) setAll("usdghood", pct(ug / B / sup.hood));
+    var ut = d.coins.USDT, uc = d.coins.USDC;
+    if (ut && uc) setAll("usdtusdc", pct((ut.total + uc.total) / d.market));
+    ["USDT", "USDC", "USDe", "USD1", "USDG", "PYUSD", "BUIDL"].forEach(function (s) { var c = d.coins[s]; if (c && c.total) setAll("coin:" + s, fmt(c.total / B)); });
+    if (d.coins.USDS && d.coins.DAI) setAll("coin:USDS+DAI", fmt((d.coins.USDS.total + d.coins.DAI.total) / B));
+    var e = d.coins.EURC;
+    if (e && e.total) {
+      setAll("coin:EURC", "≈ " + eur(e.total));
+      var parts = [["Ethereum", "eth"], ["Base", "base"], ["Solana", "sol"]].map(function (x) { var v = e.chains[x[0]]; return v ? x[0] + " " + eur(v) : null; }).filter(Boolean);
+      if (parts.length) setAll("eurc-where", parts.join(", "));
+    }
+    setAll("dlong", dlong(now)); setAll("dshort", dshort(now));
+    setAll("asof", (EN ? "As of " : "Stanje na dan ") + dlong(now) + (EN ? ", " : " u ") + hm(now));
+    setAll("mcuntil", EN ? "through last month, plus the current value for " + MONTHS[now.getMonth()] + " " + y + "." : "do prošlog mjeseca, uz trenutnu vrijednost za " + ["siječanj","veljaču","ožujak","travanj","svibanj","lipanj","srpanj","kolovoz","rujan","listopad","studeni","prosinac"][now.getMonth()] + " " + y + ".");
+    A.hooks.forEach(function (f) { try { f(); } catch (err) { if (window.console) console.error(err); } });
+    return now;
+  }
 
+  var box = document.getElementById("live"), txt = document.getElementById("live-text"), btn = document.getElementById("live-refresh");
+  function load(fresh) {
+    btn.disabled = true; box.className = "live"; txt.textContent = EN ? "Loading the latest data…" : "Učitavam najnovije podatke…";
+    fetch("/api/atlas" + (fresh ? "?fresh=1" : "")).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "HTTP " + r.status); return j; }); })
+      .then(function (d) {
+        var now = apply(d);
+        box.className = "live ok";
+        txt.textContent = (EN ? "Live DefiLlama data, " : "Podaci DefiLlame, ") + dshort(now) + (EN ? ", " : " u ") + hm(now);
+      })
+      .catch(function (err) {
+        box.className = "live err";
+        txt.textContent = (EN ? "The latest data could not be loaded (" : "Najnoviji podaci se nisu mogli učitati (") + (err && err.message || "") + (EN ? "). Showing the snapshot from 7 Oct 2026." : "). Prikazano je stanje od 7. 10. 2026.");
+      })
+      .then(function () { btn.disabled = false; });
+  }
+  btn.addEventListener("click", function () { load(true); });
+  load(false);
+})();
+</script>

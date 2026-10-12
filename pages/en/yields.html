@@ -288,7 +288,7 @@ td.mono { font-family: var(--f-data); font-size: 0.85rem; white-space: nowrap; f
     state.type = b.dataset.type; save(); render();
     $("ljestvica").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
-  $("refresh").addEventListener("click", function () { load(); });
+  $("refresh").addEventListener("click", function () { load(true); });
 
   function setStatus(kind, text) { $("status").className = "status " + (kind || ""); $("status-text").textContent = text; }
   function banner(html) { var b = $("banner"); if (!html) { b.hidden = true; return; } b.innerHTML = html; b.hidden = false; }
@@ -299,14 +299,14 @@ td.mono { font-family: var(--f-data); font-size: 0.85rem; white-space: nowrap; f
     if (x && !x.rows && Array.isArray(x.content) && x.content[0] && typeof x.content[0].text === "string") return unwrap(x.content[0].text);
     return x;
   }
-  function fetchYields() {
-    return fetch("/api/yields").then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
+  function fetchYields(fresh) {
+    return fetch("/api/yields" + (fresh ? "?fresh=1" : "")).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
   }
 
-  function load() {
+  function load(fresh) {
     if (loading) return;
     loading = true; setStatus("", "Loading data from DefiLlama…");
-    fetchYields().then(function (d) {
+    fetchYields(fresh).then(function (d) {
       if (!d || !Array.isArray(d.rows)) { setStatus("err", "No yield data."); return; }
       banner(null);
       updated = d.updated || null;
