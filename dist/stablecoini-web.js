@@ -385,10 +385,10 @@ const RADAR_CHAINS = [
   { key: "base", id: "8453", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], blockTime: 0.25, chunk: 10000, budget: 10, tokens: {
+  { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], blockTime: 0.25, chunk: 10000, tokens: {
     "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
     "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://rpc.arrowrpc.com"], chunk: 5000, budget: 14, tokens: {
+  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://rpc.arrowrpc.com"], chunk: 5000, tokens: {
     "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
     "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
 ];
@@ -461,8 +461,9 @@ async function blockInfo(c, n, budget) {
   return { n: parseInt(b.number, 16), t: parseInt(b.timestamp, 16) };
 }
 
-async function radarChainRpc(c) {
-  const budget = { used: 0, max: c.budget || 12 };
+async function radarChainRpc(c, shared) {
+  // Zajednički brojač za sve mreže: Cloudflare (besplatni plan) dopušta najviše 50 vanjskih poziva po zahtjevu.
+  const budget = shared;
   const head = await blockInfo(c, "latest", budget);
   // Vrijeme bloka: poznato za veće mreže; za ostale procjena iz zadnjih 100 blokova (stariji blokovi traže arhivski čvor).
   let bt = c.blockTime;
@@ -556,13 +557,12 @@ async function memo(key, ttlMs, fn) {
 async function apiRadarEvm(env) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
+  const shared = { used: 0, max: 44 };
   await Promise.all(RADAR_CHAINS.map(async (c) => {
-    // Prvo javni RPC čvorovi; ako svi odbiju, Blockscout kao rezerva.
-    try { out.chains[c.key] = await radarChainRpc(c); }
-    catch (e) {
-      try { out.chains[c.key] = await radarChain(env, c); }
-      catch (e2) { out.chains[c.key] = { ok: false, err: "RPC: " + String((e && e.message) || e).slice(0, 110) + " | Blockscout: " + String((e2 && e2.message) || e2).slice(0, 80) }; }
-    }
+    // S ključem BLOCKSCOUT_KEY koristi se Blockscout PRO API (pouzdan); bez njega javni RPC čvorovi,
+    // koji Cloudflare Workere često ograniče jer dijele iste IP adrese.
+    try { out.chains[c.key] = env.BLOCKSCOUT_KEY ? await radarChain(env, c) : await radarChainRpc(c, shared); }
+    catch (e) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 200) }; }
   }));
   return out;
 }
