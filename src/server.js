@@ -21,7 +21,7 @@ const RADAR_CHAINS = [
     "0x6c3ea9036406852006290770bedfcaba0e23a0e8": ["PYUSD", 6], "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d": ["USD1", 18],
     "0x8292bb45bf1ee4d140127049757c2e0ff06317ed": ["RLUSD", 18], "0xe343167631d89b6ffc58b88d6b7fb0228795491d": ["USDG", 6],
     "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": ["EURC", 6], "0xdac17f958d2ee523a2206206994597c13d831ec7": ["USDT", 6] } },
-  { key: "base", id: "8453", rpcFirst: true, rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
+  { key: "base", id: "8453", rpcFirst: true, envRpc: "BASE_RPC_URL", rpcs: ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base.drpc.org", "https://1rpc.io/base"], blockTime: 2, chunk: 450, tokens: {
     "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ["USDC", 6], "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": ["EURC", 6],
     "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
   { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://1rpc.io/arb"], blockTime: 0.25, chunk: 10000, tokens: {
@@ -66,8 +66,8 @@ const RANGE_ERR = /range|too many|exceed|query returned more|block.*limit|limit.
 // Čvorovi se pitaju počevši od nasumičnog, da se opterećenje rasporedi; nakon kruga bez uspjeha kratka pauza i još jedan krug.
 async function rpcAny(c, method, params, budget) {
   let last;
-  const k = Math.floor(Math.random() * c.rpcs.length);
-  const order = [...c.rpcs.slice(k), ...c.rpcs.slice(0, k)];
+  const pub = c.rpcs.slice(c.privRpc ? 1 : 0), k = Math.floor(Math.random() * pub.length);
+  const order = [...(c.privRpc ? [c.rpcs[0]] : []), ...pub.slice(k), ...pub.slice(0, k)];
   for (let round = 0; round < 2; round++) for (const [i, url] of order.entries()) {
     if (round && !i) await sleep(900);
     if (budget.used >= budget.max) throw new Error("Previše upita u jednoj provjeri" + (budget.last ? " (zadnja greška: " + budget.last + ")" : ""));
@@ -100,7 +100,9 @@ async function blockInfo(c, n, budget) {
   return { n: parseInt(b.number, 16), t: parseInt(b.timestamp, 16) };
 }
 
-async function radarChainRpc(c, shared) {
+async function radarChainRpc(c, shared, env) {
+  // Vlastiti RPC (tajna varijabla, npr. BASE_RPC_URL s Infura ili Alchemy ključem) ide prvi, prije javnih čvorova.
+  if (c.envRpc && env && env[c.envRpc]) c = { ...c, rpcs: [env[c.envRpc], ...c.rpcs], privRpc: true };
   // Zajednički brojač za sve mreže: Cloudflare (besplatni plan) dopušta najviše 50 vanjskih poziva po zahtjevu.
   const budget = shared;
   const head = await blockInfo(c, "latest", budget);
@@ -206,8 +208,8 @@ async function apiRadarEvm(env, only) {
     // S ključem BLOCKSCOUT_KEY koristi se Blockscout PRO API (pouzdan); bez njega javni RPC čvorovi,
     // koji Cloudflare Workere često ograniče jer dijele iste IP adrese.
     // Base u besplatnom Blockscout PRO planu nije dostupan, pa uvijek ide preko RPC-a. Ako prvi način ne uspije, pokuša se drugi.
-    const first = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChain(env, c) : () => radarChainRpc(c, shared);
-    const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
+    const first = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChain(env, c) : () => radarChainRpc(c, shared, env);
+    const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared, env) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
     try { out.chains[c.key] = await withTimeout(first(), 20000); }
     catch (e) {
       try { if (!second) throw e; out.chains[c.key] = await withTimeout(second(), 15000); }
