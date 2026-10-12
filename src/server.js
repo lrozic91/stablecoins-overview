@@ -198,11 +198,11 @@ function withTimeout(p, ms) {
   return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("Izvor nije odgovorio na vrijeme (" + ms / 1000 + " s)")), ms))]);
 }
 
-async function apiRadarEvm(env) {
+async function apiRadarEvm(env, only) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
   const shared = { used: 0, max: 44 };
-  await Promise.all(RADAR_CHAINS.map(async (c) => {
+  await Promise.all(RADAR_CHAINS.filter((c) => !only || c.key === only).map(async (c) => {
     // S ključem BLOCKSCOUT_KEY koristi se Blockscout PRO API (pouzdan); bez njega javni RPC čvorovi,
     // koji Cloudflare Workere često ograniče jer dijele iste IP adrese.
     // Base u besplatnom Blockscout PRO planu nije dostupan, pa uvijek ide preko RPC-a. Ako prvi način ne uspije, pokuša se drugi.
@@ -245,7 +245,10 @@ class HttpError extends Error { constructor(status, msg) { super(msg); this.stat
 
 const API = {
   "/api/radar/evm": async (env, url) => {
-    const d = await memo("radar-evm", 120000, () => apiRadarEvm(env));
+    // ?chain=eth: samo jedna mreža. Stranica pita svaku mrežu posebnim zahtjevom, jer Cloudflare
+    // dopušta najviše 50 vanjskih poziva po zahtjevu, a sve mreže zajedno znaju prijeći tu granicu.
+    const only = RADAR_CHAINS.some((c) => c.key === url.searchParams.get("chain")) ? url.searchParams.get("chain") : "";
+    const d = await memo("radar-evm:" + only, 120000, () => apiRadarEvm(env, only));
     if (!url.searchParams.has("summary")) return d;
     // Kratki pregled stanja po mrežama (za provjeru bez cijelog popisa mintanja).
     const chains = {};

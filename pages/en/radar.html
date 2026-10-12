@@ -182,14 +182,15 @@ tr.new td { animation: flash 2.5s ease-out; }
   function cycle() {
     if (busy) return Promise.resolve(); busy = true; lastCycle = Date.now();
     var fresh = firstDone;
-    var evm = api("/api/radar/evm").then(function (d) {
-      Object.keys(d.chains || {}).forEach(function (k) {
-        var c = BY_KEY[k], r = d.chains[k]; if (!c) return;
-        if (r.ok) { (r.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); }
-        else c.state.err = "Error: " + (r.err || "unknown");
-      });
-      render();
-    }, function (e) { CHAINS.forEach(function (c) { if (!c.solana) c.state.err = "Cannot reach the server: " + (e.message || ""); }); });
+    // Svaka EVM mreža posebnim zahtjevom, pa se kartica popuni čim stigne njezin odgovor.
+    var evm = Promise.all(CHAINS.filter(function (c) { return !c.solana; }).map(function (c) {
+      return api("/api/radar/evm?chain=" + c.key).then(function (d) {
+        var r = (d.chains || {})[c.key];
+        if (r && r.ok) { (r.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); }
+        else { r = r || {}; c.state.err = "Error: " + (r.err || "unknown"); }
+        render();
+      }, function (e) { c.state.err = "Cannot reach the server: " + (e.message || ""); render(); });
+    }));
     var sol = api("/api/radar/sol").then(function (d) {
       var c = BY_KEY.sol; (d.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); render();
     }, function (e) { BY_KEY.sol.state.err = "Solana error: " + (e.message || "unknown"); });
