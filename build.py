@@ -17,14 +17,14 @@ V1 = "--v1" in sys.argv
 ROOT = pathlib.Path(__file__).resolve().parent
 PAGES = [
     ("/", "atlas.html", "Općenito", "Stablecoini na Ethereumu, Solani, Baseu, Arbitrumu i Robinhood Chainu: ponuda, povijest, peg, DeFi i regulativa."),
-    ("/radar", "radar.html", "Radar", "Nova mintanja stablecoina uživo na pet mreža."),
+    ("/radar", "radar.html", "Mint radar", "Nova mintanja stablecoina uživo na pet mreža."),
     ("/prinosi", "prinosi.html", "Prinosi", "Vrste DeFi usluga za stablecoine i bazeni s najvišim prinosom."),
     ("/wallet", "wallet.html", "Wallet checker", "Stanje, povijest i DeFi pozicije stablecoina za EVM ili Solana wallet."),
 ]
 # Engleska verzija: iste stranice pod /en, izvor u pages/en/ (Atlas je razdijeljen na dijelove u pages/en/parts/).
 PAGES_EN = [
     ("/en", "atlas.html", "Overview", "Stablecoins on Ethereum, Solana, Base, Arbitrum and Robinhood Chain: supply, history, peg, DeFi and regulation."),
-    ("/en/radar", "radar.html", "Radar", "New stablecoin mints live on five networks."),
+    ("/en/radar", "radar.html", "Mint radar", "New stablecoin mints live on five networks."),
     ("/en/yields", "yields.html", "Yields", "Types of DeFi services for stablecoins and the highest-yielding pools."),
     ("/en/wallet", "wallet.html", "Wallet checker", "Stablecoin balances, history and DeFi positions for an EVM or Solana wallet."),
 ]
