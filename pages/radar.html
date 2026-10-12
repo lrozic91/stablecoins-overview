@@ -87,7 +87,6 @@ tr.new td { animation: flash 2.5s ease-out; }
   <div class="controls">
     <label for="thr">Najmanji iznos
       <select id="thr">
-        <option value="0">Svi iznosi</option>
         <option value="1000">≥ 1.000</option>
         <option value="10000">≥ 10.000</option>
         <option value="100000">≥ 100.000</option>
@@ -148,7 +147,7 @@ tr.new td { animation: flash 2.5s ease-out; }
   var $ = function (id) { return document.getElementById(id); };
   var seen = new Set(), mints = [], live = false, busy = false, firstDone = false;
   var thr = 100000, pops = true;
-  try { var sv = localStorage.getItem("thr3"); if (sv !== null) thr = Number(sv); pops = localStorage.getItem("pop") !== "0"; } catch (e) {}
+  try { var sv = localStorage.getItem("thr3"); if (sv !== null) thr = Math.max(1000, Number(sv)); pops = localStorage.getItem("pop") !== "0"; } catch (e) {}
   $("thr").value = String(thr); $("pop").checked = pops;
   $("thr").addEventListener("change", function () { thr = Number(this.value); try { localStorage.setItem("thr3", String(thr)); } catch (e) {} render(); });
   $("pop").addEventListener("change", function () { pops = this.checked; try { localStorage.setItem("pop", pops ? "1" : "0"); } catch (e) {} });
@@ -167,7 +166,9 @@ tr.new td { animation: flash 2.5s ease-out; }
   function short(a) { return a.slice(0, 6) + "…" + a.slice(-4); }
   function banner(msg, bad) { var b = $("banner"); if (!msg) { b.hidden = true; return; } b.hidden = false; b.className = "banner" + (bad ? " bad" : ""); b.textContent = msg; }
   function api(path) {
-    return fetch(path, { cache: "no-store" }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
+    // Rok od 45 s, da stranica ne ostane zauvijek na "Povezujem…".
+    var ac = new AbortController(); setTimeout(function () { ac.abort(); }, 45000);
+    return fetch(path, { cache: "no-store", signal: ac.signal }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw { message: j.error || ("HTTP " + r.status) }; return j; }); });
   }
 
   function add(c, x, fresh) {
@@ -187,9 +188,10 @@ tr.new td { animation: flash 2.5s ease-out; }
         if (r.ok) { (r.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); }
         else c.state.err = "Greška: " + (r.err || "nepoznata");
       });
+      render();
     }, function (e) { CHAINS.forEach(function (c) { if (!c.solana) c.state.err = "Nema veze s poslužiteljem: " + (e.message || ""); }); });
     var sol = api("/api/radar/sol").then(function (d) {
-      var c = BY_KEY.sol; (d.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now();
+      var c = BY_KEY.sol; (d.mints || []).forEach(function (x) { add(c, x, fresh); }); c.state.err = ""; c.state.last = Date.now(); render();
     }, function (e) { BY_KEY.sol.state.err = "Solana greška: " + (e.message || "nepoznata"); });
     return Promise.all([evm, sol]).then(function () { live = true; firstDone = true; banner(""); busy = false; render(); });
   }

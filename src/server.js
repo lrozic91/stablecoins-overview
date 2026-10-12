@@ -136,7 +136,7 @@ async function radarChainRpc(c, shared) {
 
 async function blockscoutGet(url) {
   for (let attempt = 0; ; attempt++) {
-    const r = await fetch(url, { headers: { accept: "application/json", "user-agent": "stablecoini-web/1.0" } });
+    const r = await fetch(url, { headers: { accept: "application/json", "user-agent": "stablecoini-web/1.0" }, signal: AbortSignal.timeout(10000) });
     if (r.status === 429 && attempt < 2) { await sleep(1200); continue; }
     const t = await r.text();
     let j;
@@ -193,6 +193,11 @@ async function memo(key, ttlMs, fn) {
   return p;
 }
 
+// Rok za jednu mrežu, da jedan spori izvor ne zadrži cijeli odgovor.
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("Izvor nije odgovorio na vrijeme (" + ms / 1000 + " s)")), ms))]);
+}
+
 async function apiRadarEvm(env) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
@@ -203,12 +208,14 @@ async function apiRadarEvm(env) {
     // Base u besplatnom Blockscout PRO planu nije dostupan, pa uvijek ide preko RPC-a. Ako prvi način ne uspije, pokuša se drugi.
     const first = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChain(env, c) : () => radarChainRpc(c, shared);
     const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
-    try { out.chains[c.key] = await first(); }
+    try { out.chains[c.key] = await withTimeout(first(), 20000); }
     catch (e) {
-      try { if (!second) throw e; out.chains[c.key] = await second(); }
+      try { if (!second) throw e; out.chains[c.key] = await withTimeout(second(), 15000); }
       catch (e2) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 120) + (e2 !== e ? " | " + String((e2 && e2.message) || e2).slice(0, 80) : "") }; }
     }
   }));
+  // Mintanja manja od 1.000 $ se ne šalju (najmanji prag na stranici je 1.000), da odgovor ostane malen.
+  for (const v of Object.values(out.chains)) if (v.mints) v.mints = v.mints.filter((m) => m.amt >= 1000);
   return out;
 }
 
