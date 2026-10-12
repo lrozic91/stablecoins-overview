@@ -140,7 +140,6 @@ svg.hist .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
         <div class="chart-head"><h3>Total stablecoin balance in dollars</h3><span class="readout" id="readout"></span></div>
         <div id="chart"></div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Network</th><th>Stablecoin</th><th class="r">Change</th><th class="hide-sm">Transaction</th></tr></thead><tbody id="events"></tbody></table></div>
       <p class="caption" id="hist-cap"></p>
     </section>
 
@@ -382,12 +381,7 @@ svg.hist .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
     $("hold-cap").textContent = r.truncated.length ? "On " + r.truncated.join(", ") + " the wallet has more transfers than the page can fetch, so balances marked with ≈ are approximate." : "Balances are computed from transfers and are valid as of the time of the check.";
 
     drawChart(r);
-    var ev = r.events.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, 25);
-    $("events").innerHTML = ev.length ? ev.map(function (e) {
-      var href = e.chain.ex + "/tx/" + e.tx;
-      return "<tr><td class=\"mono\">" + df.format(new Date(e.ts * 1000)) + "</td><td>" + esc(e.chain.name) + "</td><td class=\"sym\">" + esc(e.sym) + "</td><td class=\"r mono " + (e.d > 0 ? "plus" : "minus") + "\">" + (e.d > 0 ? "+" : "−") + qty(Math.abs(e.d)) + "</td><td class=\"hide-sm mono\"><a href=\"" + esc(href) + "\" target=\"_blank\" rel=\"noopener\">" + esc(short(e.tx)) + "</a></td></tr>";
-    }).join("") : '<tr><td colspan="5" class="sub">No stablecoin transfers.</td></tr>';
-    $("hist-cap").textContent = "Latest " + ev.length + " of " + r.events.length + " changes. The chart excludes EURC." + (r.scanned ? " On Solana the latest " + r.scanned + " transactions were scanned." : "");
+    $("hist-cap").textContent = "The chart excludes EURC." + (r.scanned ? " On Solana the latest " + r.scanned + " transactions were scanned." : "");
 
     var ps = r.positions.slice().sort(function (a, b) { return (b.usd || b.bal || 0) - (a.usd || a.bal || 0); });
     $("pos-intro").hidden = false;
