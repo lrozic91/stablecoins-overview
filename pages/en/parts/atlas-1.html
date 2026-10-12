@@ -344,9 +344,9 @@ th { background: var(--thead); }
     </div>
   <style>
 /* Top 10 na jednom grafu: linije po stablecoinu, fiksni redoslijed boja, 9. serija neutralna isprekidana */
-.mc { --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --c8: #e34948; --c9: var(--muted); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; } }
-:root[data-theme="dark"] .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; }
+.mc { --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --c8: #e34948; --c9: var(--muted); --c10: #8c564b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; --c10: #b9826f; } }
+:root[data-theme="dark"] .mc { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; --c10: #b9826f; }
 .mc-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; margin-top: 18px; }
 .mc-legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .mc-legend button { font: inherit; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
@@ -409,7 +409,7 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
 @media (max-width: 560px) { .mc-legend button span { display: none; } .mc-legend button { padding: 3px 8px; } }
 </style>
     <div class="mc-head">
-      <h3>Top 10 stablecoins over time (excluding USYC)</h3>
+      <h3>Top 10 stablecoins over time</h3>
       <div class="seg" role="group" aria-label="Scale for the per-stablecoin chart">
         <button type="button" data-y="lanes" aria-pressed="true">Lanes</button>
         <button type="button" data-y="log" aria-pressed="false">All together (log)</button>
@@ -419,9 +419,9 @@ dialog.det::backdrop { background: rgba(0,0,0,.45); }
     <p class="intro"><b>Click a lane or a stablecoin's name for a detailed view</b> with supply in M $, monthly changes and a table. Each stablecoin has its own lane, so the lines don't cross, and all lanes share the same time axis. A lane starts when the stablecoin appeared, and each has its own scale up to its peak amount (shown on the right). For a direct size comparison, choose “All together”. Click a name in the legend to hide or show it.</p>
     <div class="hist-card mc">
       <div class="mc-legend" id="mc-legend"></div>
-      <div class="mc-wrap"><svg id="mc-svg" role="img" aria-label="Supply of the nine largest stablecoins from 2015 to 2026"></svg><div class="mc-tip" id="mc-tip"></div></div>
+      <div class="mc-wrap"><svg id="mc-svg" role="img" aria-label="Supply of the ten largest stablecoins from 2015 to 2026"></svg><div class="mc-tip" id="mc-tip"></div></div>
     </div>
-    <p class="hist-note">Monthly market capitalization at month-end according to CoinMarketCap, through September 2026. For stablecoins it is practically equal to supply. The tenth largest, Circle's USYC, is not included because it is a tokenized money market fund that CoinMarketCap does not track. DAI is shown from November 2019, when it replaced the first version (SAI) from December 2017. For DAI, CoinMarketCap has shown almost unchanged supply since 2023, so that part should be taken with caution.</p>
+    <p class="hist-note">Month-end supply according to DefiLlama, summed across all networks, through September 2026. For USDT up to the end of 2020 and for USDG up to June 2025, CoinMarketCap is used, because DefiLlama does not track every network for that period (e.g. USDT on Bitcoin's Omni protocol). USYC is Circle's tokenized money market fund; DefiLlama lists it as a stablecoin, and its price slowly rises above $1. DAI is shown from November 2019, when it replaced the first version (SAI) from December 2017.</p>
   </section>
 <style>
 /* Peg: po stablecoinu raspon cijene unutar mjeseca (crtica) i cijena na kraju mjeseca (linija), os fiksno 0,85–1,15 $ */
