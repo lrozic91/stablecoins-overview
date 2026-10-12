@@ -219,10 +219,17 @@ th { background: var(--thead); }
 .bmap svg { width: 100%; height: auto; display: block; }
 .bmap .chain { stroke-width: 2; }
 .bmap .bub { stroke: var(--surface); stroke-width: 1; }
-.bmap .bw { transition: transform .18s ease; cursor: zoom-in; }
-.bmap .bw .hl { opacity: 0; transition: opacity .18s ease; }
-.bmap .bw.on .hl { opacity: 1; }
-.bmap .bw.on .bub { stroke-width: 1.5; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+.bmap .zg { transition: transform .25s ease; cursor: zoom-in; }
+.bmap .zg.zoom { cursor: zoom-out; }
+.bmap .zg circle { vector-effect: non-scaling-stroke; }
+.bmap .zx > :not(.zg) { opacity: 0; }
+.bmap .zg.zoom .chain { filter: drop-shadow(0 4px 14px rgba(0,0,0,.22)); }
+.bmap .zl { opacity: 0; transition: opacity .2s ease; }
+.bmap .nl { transition: opacity .2s ease; }
+.bmap .zg.zoom .zl { opacity: 1; }
+.bmap .zg.zoom .nl { opacity: 0; }
+.bmap .bv.zl { opacity: 0; }
+.bmap .zg.zoom .bv.zl { opacity: 0.9; }
 .bmap text { pointer-events: none; }
 .bmap .cl { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
 .bmap .cv { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }

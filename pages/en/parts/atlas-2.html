@@ -258,46 +258,52 @@ window.makePie = function (items, c1, c2) {
     fsc = layout();
     order.forEach(function (g) { y1 = Math.max(y1, g.y + g.R + (36 + g.small.length * 13) * fsc); });
     var W = x1 - x0, H = y1 - y0;
+    var Rmax = groups.reduce(function (m, x) { return Math.max(m, x.R); }, 0);
     var svg = svgEl("svg", { viewBox: [x0, y0, W, H].map(function (n) { return n.toFixed(1); }).join(" "), role: "img" });
     svg.style.maxHeight = "760px";
     var aria = [];
     groups.forEach(function (g) {
       var nc = "var(--n-" + g.ch.key + ")";
-      var gg = svgEl("g", {});
+      var gg = svgEl("g", {}), zg = svgEl("g", { class: "zg" });
+      gg.appendChild(zg);
       var circ = svgEl("circle", { cx: g.x, cy: g.y, r: g.R, class: "chain" });
       circ.style.fill = "color-mix(in srgb, " + nc + " 10%, var(--surface))"; circ.style.stroke = nc;
       circ.appendChild(svgEl("title", {}, g.ch.name + ": " + fmt(g.tot)));
-      gg.appendChild(circ);
+      zg.appendChild(circ);
+      // Hover/tap zoom: the whole network circle temporarily grows to the size of the largest one.
+      var s = Rmax / g.R;
+      function lab(it, r, k, cls) {
+        var fs = labelFs({ name: it.name, r: r }, fsc) / k;
+        if (!fs) return;
+        var big = r > 30, bx = g.x + it.x, by = g.y + it.y;
+        zg.appendChild(svgEl("text", { x: bx, y: by + (big ? -2 : 3) / k, "text-anchor": "middle", class: "bl " + cls, style: "font-size:" + fs + "px" }, it.name));
+        if (big) zg.appendChild(svgEl("text", { x: bx, y: by + fs * 0.95, "text-anchor": "middle", class: "bv " + cls, style: "font-size:" + (fs * 0.75) + "px" }, fmtS(it.v)));
+      }
       g.items.forEach(function (it) {
         var c = svgEl("circle", { cx: g.x + it.x, cy: g.y + it.y, r: it.r - 1, class: "bub" });
         c.style.fill = colorOf(it);
         c.appendChild(svgEl("title", {}, g.ch.name + " · " + it.name + (it.cat ? " (" + it.cat + ")" : "") + ": " + fmt(it.v) + " · " + Math.round(it.v / g.tot * 100) + " %"));
-        var bx = g.x + it.x, by = g.y + it.y, bw = svgEl("g", { class: "bw" });
-        // Hover/tap zoom: small bubbles grow to a readable size, big ones just a little.
-        var T = 42 * fsc, sc = Math.max(1.15, T / it.r);
-        bw.style.transformOrigin = bx + "px " + by + "px";
-        bw.addEventListener("pointerenter", function () {
+        zg.appendChild(c);
+      });
+      g.items.forEach(function (it) {
+        lab(it, it.r, 1, s > 1.1 ? "nl" : "");
+        if (s > 1.1) lab(it, it.r * s, s, "zl");
+      });
+      if (s > 1.1) {
+        var cx = Math.min(Math.max(g.x, x0 + Rmax), x1 - Rmax), cy = Math.min(Math.max(g.y, y0 + Rmax), y1 - Rmax);
+        if (x1 - x0 < 2 * Rmax) cx = (x0 + x1) / 2;
+        if (y1 - y0 < 2 * Rmax) cy = (y0 + y1) / 2;
+        var zt = svgEl("text", { x: g.x, y: g.y - g.R + 26 * fsc / s, "text-anchor": "middle", class: "cl zl", style: "font-size:" + (17 * fsc / s) + "px" }, g.ch.name + " · " + fmt(g.tot));
+        zt.style.fill = nc; zg.appendChild(zt);
+        zg.style.transformOrigin = "0px 0px";
+        zg.addEventListener("pointerenter", function () {
           // Bring to front by moving later siblings behind it (moving the hovered node itself would cancel the hover).
           while (gg.nextSibling) svg.insertBefore(gg.nextSibling, gg);
-          while (bw.nextSibling) gg.insertBefore(bw.nextSibling, bw);
-          bw.classList.add("on"); bw.style.transform = "scale(" + sc + ")";
+          zg.classList.add("zoom"); gg.classList.add("zx");
+          zg.style.transform = "translate(" + (cx - s * g.x) + "px," + (cy - s * g.y) + "px) scale(" + s + ")";
         });
-        bw.addEventListener("pointerleave", function () { bw.classList.remove("on"); bw.style.transform = ""; });
-        bw.appendChild(c); gg.appendChild(bw);
-        var fs = labelFs(it, fsc);
-        if (!fs) {
-          var hf = Math.min(15 * fsc, Math.max(9 * fsc, T / 3.2));
-          if (it.name.length * hf * 0.6 > T * 1.8) hf = T * 1.8 / (it.name.length * 0.6);
-          hf /= sc;
-          bw.appendChild(svgEl("text", { x: bx, y: by - hf * 0.1, "text-anchor": "middle", class: "bl hl", style: "font-size:" + hf + "px" }, it.name));
-          bw.appendChild(svgEl("text", { x: bx, y: by + hf * 0.95, "text-anchor": "middle", class: "bv hl", style: "font-size:" + (hf * 0.75) + "px" }, fmtS(it.v)));
-        }
-        if (fs) {
-          var t = svgEl("text", { x: g.x + it.x, y: g.y + it.y + (it.r > 30 ? -2 : 3), "text-anchor": "middle", class: "bl" }, it.name);
-          t.style.fontSize = fs + "px"; bw.appendChild(t);
-          if (it.r > 30) { var tv = svgEl("text", { x: g.x + it.x, y: g.y + it.y + fs * 0.95, "text-anchor": "middle", class: "bv" }, fmtS(it.v)); tv.style.fontSize = (fs * 0.75) + "px"; bw.appendChild(tv); }
-        }
-      });
+        zg.addEventListener("pointerleave", function () { zg.classList.remove("zoom"); gg.classList.remove("zx"); zg.style.transform = ""; });
+      }
       var ly = g.y + g.R + 16 * fsc;
       var tl = svgEl("text", { x: g.x, y: ly, "text-anchor": "middle", class: "cl" }, g.ch.name); tl.style.fill = nc; tl.style.fontSize = (15 * fsc) + "px"; gg.appendChild(tl);
       var tv2 = svgEl("text", { x: g.x, y: ly + 14 * fsc, "text-anchor": "middle", class: "cv" }, fmt(g.tot)); tv2.style.fontSize = (11 * fsc) + "px"; gg.appendChild(tv2);
