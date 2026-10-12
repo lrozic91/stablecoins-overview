@@ -724,7 +724,8 @@ window.makePie = function (items, c1, c2) {
     var pi = top.map(function (x, k) { return { l: x.l, v: x.v, s: x.s, c: "color-mix(in srgb, var(--nc) " + shades[k] + "%, var(--surface))" }; });
     if (others > 0) pi.push({ l: "Ostali u tablici", v: others, s: (others >= 1 ? (Math.round(others * 10) / 10 + " mlrd. $").replace(".", ",") : Math.round(others * 1000) + " mil. $"), c: "var(--c-rest)" });
     c.appendChild(window.makePie(pi, "TVL", "protokoli"));
-    c.appendChild(el("p", "pie-note", "Udio među protokolima iz tablice, bez kuratora rizika (preklapaju se s Morphom)."));
+    var cur = n.p.filter(function (r) { return r[1] === "Kurator rizika"; }).map(function (r) { return r[0].split(" ")[0]; });
+    c.appendChild(el("p", "pie-note", "Udio među protokolima iz tablice." + (cur.length ? " Bez " + cur.map(function (x) { return x === "Steakhouse" ? "Steakhousea" : x === "Gauntlet" ? "Gauntleta" : x; }).join(" i ") + ", jer upravlja" + (cur.length > 1 ? "ju" : "") + " novcem koji je već uračunat u Morpho." : "")));
     var w = el("div", "table-wrap"); var tb = el("table");
     tb.innerHTML = '<thead><tr><th>Protokol</th><th>Kategorija</th><th class="r">TVL na mreži</th><th>Uloga stablecoina</th></tr></thead>';
     var body = el("tbody");

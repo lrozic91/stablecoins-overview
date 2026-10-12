@@ -152,7 +152,8 @@ window.makePie = function (items, c1, c2) {
     var pi = top.map(function (x, k) { return { l: x.l, v: x.v, s: x.s, c: "color-mix(in srgb, var(--nc) " + shades[k] + "%, var(--surface))" }; });
     if (others > 0) pi.push({ l: "Others in table", v: others, s: (others >= 1 ? (Math.round(others * 10) / 10 + " bn $") : Math.round(others * 1000) + " M $"), c: "var(--c-rest)" });
     c.appendChild(window.makePie(pi, "TVL", "protocols"));
-    c.appendChild(el("p", "pie-note", "Share among the protocols in the table, excluding risk curators (they overlap with Morpho)."));
+    var cur = n.p.filter(function (r) { return r[1] === "Risk curator"; }).map(function (r) { return r[0].split(" ")[0]; });
+    c.appendChild(el("p", "pie-note", "Share among the protocols in the table." + (cur.length ? " Excluding " + cur.join(" and ") + ", because " + (cur.length > 1 ? "they manage" : "it manages") + " money already counted in Morpho." : "")));
     var w = el("div", "table-wrap"); var tb = el("table");
     tb.innerHTML = '<thead><tr><th>Protocol</th><th>Category</th><th class="r">TVL on network</th><th>Stablecoin role</th></tr></thead>';
     var body = el("tbody");
