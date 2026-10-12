@@ -388,7 +388,7 @@ const RADAR_CHAINS = [
   { key: "arb", id: "42161", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org"], chunk: 10000, tokens: {
     "0xaf88d065e77c8cc2239327c5edb3a432268e5831": ["USDC", 6], "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": ["USD₮0", 6],
     "0x46850ad61c2b7d64d08c9c754f45254596696984": ["PYUSD", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18] } },
-  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org"], chunk: 10000, tokens: {
+  { key: "hood", id: "4663", rpcs: ["https://rpc.mainnet.chain.robinhood.com", "https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org"], chunk: 5000, budget: 22, tokens: {
     "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
     "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
 ];
@@ -427,11 +427,11 @@ const RANGE_ERR = /range|too many|exceed|query returned more|block.*limit|limit.
 async function rpcAny(c, method, params, budget) {
   let last;
   for (const url of c.rpcs) {
-    if (budget.used >= budget.max) throw new Error("Previše upita u jednoj provjeri");
+    if (budget.used >= budget.max) throw new Error("Previše upita u jednoj provjeri" + (budget.last ? " (zadnja greška: " + budget.last + ")" : ""));
     budget.used++;
     try { return await rpcCall(url, method, params); }
     catch (e) {
-      last = e;
+      last = e; budget.last = String(e.message || e).slice(0, 120);
       if (method === "eth_getLogs" && RANGE_ERR.test(String(e.message)) && !/rate/i.test(String(e.message))) throw e;
     }
   }
@@ -458,7 +458,7 @@ async function blockInfo(c, n, budget) {
 }
 
 async function radarChainRpc(c) {
-  const budget = { used: 0, max: 12 };
+  const budget = { used: 0, max: c.budget || 12 };
   const since = Math.floor(Date.now() / 1000) - RADAR_WINDOW_S;
   const head = await blockInfo(c, "latest", budget);
   // Prvi blok prozora: procjena iz prosječnog vremena bloka, uz jednu provjeru i po potrebi korekciju.
