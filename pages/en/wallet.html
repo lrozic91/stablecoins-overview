@@ -84,6 +84,9 @@ td.r, th.r { text-align: right; }
 .chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; }
 .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
 .readout { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); min-height: 1.3em; }
+#chart { position: relative; }
+.ctip { position: absolute; top: 0; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-family: var(--f-data); font-size: 0.8rem; color: var(--muted); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.ctip b { display: block; font-size: 1rem; color: var(--ink); }
 svg.hist { width: 100%; height: auto; display: block; touch-action: pan-y; }
 svg.hist text { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }
 svg.hist .grid { stroke: var(--line); stroke-width: 1; }
@@ -427,7 +430,7 @@ svg.hist .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
     s += '<line class="cross" id="cross" y1="' + T + '" y2="' + (H - B) + '" x1="-10" x2="-10"/><circle class="dot" id="cdot" r="4" cx="-10" cy="-10"/>';
     s += '<circle class="dot" r="4" cx="' + x(t1) + '" cy="' + y(pts[pts.length - 1].v) + '"/>';
     s += '<rect id="hit" x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + H + '" fill="transparent"/></svg>';
-    $("chart").innerHTML = s;
+    $("chart").innerHTML = s + '<div class="ctip" id="ctip" hidden></div>';
     $("readout").textContent = "Today: " + money(pts[pts.length - 1].v);
     var svg = $("chart").firstChild;
     function at(evt) {
@@ -438,9 +441,14 @@ svg.hist .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
       $("cross").setAttribute("x1", cx); $("cross").setAttribute("x2", cx);
       $("cdot").setAttribute("cx", cx); $("cdot").setAttribute("cy", y(v));
       $("readout").textContent = df.format(new Date(Math.min(t1, Math.max(t0, t)) * 1000)) + ": " + money(v);
+      var tip = $("ctip"), dt = df.format(new Date(Math.min(t1, Math.max(t0, t)) * 1000));
+      tip.innerHTML = "<b>" + esc(money(v)) + "</b>" + esc(dt); tip.hidden = false;
+      var sx = cx / W * rect.width, sy = y(v) / H * rect.height, tw = tip.offsetWidth;
+      tip.style.left = (sx + 12 + tw > rect.width ? sx - 12 - tw : sx + 12) + "px";
+      tip.style.top = Math.max(0, sy - tip.offsetHeight - 10) + "px";
     }
     svg.addEventListener("pointermove", at);
-    svg.addEventListener("pointerleave", function () { $("cross").setAttribute("x1", -10); $("cross").setAttribute("x2", -10); $("cdot").setAttribute("cx", -10); $("readout").textContent = "Today: " + money(pts[pts.length - 1].v); });
+    svg.addEventListener("pointerleave", function () { $("ctip").hidden = true; $("cross").setAttribute("x1", -10); $("cross").setAttribute("x2", -10); $("cdot").setAttribute("cx", -10); $("readout").textContent = "Today: " + money(pts[pts.length - 1].v); });
   }
 
   // ---------- Pokretanje ----------
