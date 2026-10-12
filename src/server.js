@@ -31,7 +31,7 @@ const RADAR_CHAINS = [
     "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG", 6], "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34": ["USDe", 18],
     "0xce24439f2d9c6a2289f741120fe202248b666666": ["U", 18] } },
 ];
-const RADAR_WINDOW_S = 1800;
+const RADAR_WINDOW_S = 2100; // 35 min: malo više od razmaka automatskih provjera (30 min), da se ništa ne propusti
 
 // Blockscout, sučelje kompatibilno s Etherscanom. Vraća polje result ili baca grešku.
 // S ključem prvo pita PRO API; ako on za neku mrežu ne uspije, pokuša javni explorer te mreže.

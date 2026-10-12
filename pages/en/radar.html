@@ -77,7 +77,7 @@ tr.new td { animation: flash 2.5s ease-out; }
 <main class="wrap">
   <header style="display:grid;gap:8px">
     <h1>Mint radar</h1>
-    <p class="lead">Tracks new stablecoin mints on Ethereum, Base, Arbitrum, Robinhood Chain and Solana and announces every new mint with a pop-up notification. The page refreshes every minute while open and immediately shows mints from the last 30 minutes.</p>
+    <p class="lead">Tracks new stablecoin mints on Ethereum, Base, Arbitrum, Robinhood Chain and Solana and announces every new mint with a pop-up notification. The page checks automatically every 30 minutes (or right away with “Check now”) while open and immediately shows mints from the last 30 minutes.</p>
   </header>
 
   <div id="banner" class="banner" hidden></div>
@@ -141,16 +141,16 @@ tr.new td { animation: flash 2.5s ease-out; }
     { key: "sol", name: "Solana", ex: "https://solscan.io", solana: true, tokens: {} }
   ];
 
-  var POLL_MS = 60000, MAX_ROWS = 300, lastCycle = 0;
+  var POLL_MS = 1800000, MAX_ROWS = 300, lastCycle = 0;
   var nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
   var nf2 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
   var tf = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   var $ = function (id) { return document.getElementById(id); };
   var seen = new Set(), mints = [], live = false, busy = false, firstDone = false;
-  var thr = 10000, pops = true;
-  try { var sv = localStorage.getItem("thr2"); if (sv !== null) thr = Number(sv); pops = localStorage.getItem("pop") !== "0"; } catch (e) {}
+  var thr = 100000, pops = true;
+  try { var sv = localStorage.getItem("thr3"); if (sv !== null) thr = Number(sv); pops = localStorage.getItem("pop") !== "0"; } catch (e) {}
   $("thr").value = String(thr); $("pop").checked = pops;
-  $("thr").addEventListener("change", function () { thr = Number(this.value); try { localStorage.setItem("thr2", String(thr)); } catch (e) {} render(); });
+  $("thr").addEventListener("change", function () { thr = Number(this.value); try { localStorage.setItem("thr3", String(thr)); } catch (e) {} render(); });
   $("pop").addEventListener("change", function () { pops = this.checked; try { localStorage.setItem("pop", pops ? "1" : "0"); } catch (e) {} });
 
   var BY_KEY = {};
@@ -243,6 +243,6 @@ tr.new td { animation: flash 2.5s ease-out; }
   cycle();
   setInterval(function () { if (!document.hidden) cycle(); }, POLL_MS);
   document.addEventListener("visibilitychange", function () { if (!document.hidden && Date.now() - lastCycle > POLL_MS / 2) cycle(); });
-  setInterval(function () { $("clock").textContent = live ? "Live · checking every minute" : ""; }, 1000);
+  setInterval(function () { $("clock").textContent = live ? "Live · checking every 30 min" : ""; }, 1000);
 })();
 </script>
