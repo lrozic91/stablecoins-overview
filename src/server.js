@@ -52,7 +52,7 @@ async function blockscout(env, chainid, params) {
 
 // Javni RPC čvorovi: mintanja se čitaju izravno iz čvora, bez Blockscouta (koji Workere često ograniči ili blokira).
 async function rpcCall(url, method, params) {
-  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(8000) });
   const t = await r.text();
   let j;
   try { j = JSON.parse(t); } catch { throw new Error("RPC HTTP " + r.status + ": " + t.slice(0, 160)); }
@@ -194,10 +194,11 @@ async function memo(key, ttlMs, fn) {
 
 async function apiRadarEvm(env) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
-  for (const c of RADAR_CHAINS) {
+  // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
+  await Promise.all(RADAR_CHAINS.map(async (c) => {
     try { out.chains[c.key] = c.rpcs ? await radarChainRpc(c) : await radarChain(env, c); }
     catch (e) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 200) }; }
-  }
+  }));
   return out;
 }
 
