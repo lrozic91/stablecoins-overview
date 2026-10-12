@@ -865,8 +865,13 @@ window.makePie = function (items, c1, c2) {
         var cx = Math.min(Math.max(g.x, x0 + Rmax), x1 - Rmax), cy = Math.min(Math.max(g.y, y0 + Rmax), y1 - Rmax);
         if (x1 - x0 < 2 * Rmax) cx = (x0 + x1) / 2;
         if (y1 - y0 < 2 * Rmax) cy = (y0 + y1) / 2;
-        var zt = svgEl("text", { x: g.x, y: g.y - g.R + 26 * fsc / s, "text-anchor": "middle", class: "cl zl", style: "font-size:" + (17 * fsc / s) + "px" }, g.ch.name + " · " + fmt(g.tot));
+        // Title inside the zoomed circle: two lines, placed and sized so they fit within the circle's chord.
+        var tf = 17 * fsc, top = 40 * fsc;
+        var chord = 2 * Math.sqrt(Math.max(0, Rmax * Rmax - Math.pow(Rmax - top + tf, 2)));
+        tf = Math.min(tf, chord * 0.85 / (g.ch.name.length * 0.62));
+        var zt = svgEl("text", { x: g.x, y: g.y - g.R + top / s, "text-anchor": "middle", class: "cl zl", style: "font-size:" + (tf / s) + "px" }, g.ch.name);
         zt.style.fill = nc; zg.appendChild(zt);
+        zg.appendChild(svgEl("text", { x: g.x, y: g.y - g.R + (top + tf * 1.05) / s, "text-anchor": "middle", class: "cv zl", style: "font-size:" + (12 * fsc / s) + "px" }, fmt(g.tot)));
         zg.style.transformOrigin = "0px 0px";
         zg.addEventListener("pointerenter", function () {
           // Bring to front by moving later siblings behind it (moving the hovered node itself would cancel the hover).
