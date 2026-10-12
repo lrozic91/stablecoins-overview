@@ -52,7 +52,7 @@ async function blockscout(env, chainid, params) {
 
 // Javni RPC čvorovi: mintanja se čitaju izravno iz čvora, bez Blockscouta (koji Workere često ograniči ili blokira).
 async function rpcCall(url, method, params) {
-  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(8000) });
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(6000) });
   const t = await r.text();
   let j;
   try { j = JSON.parse(t); } catch { throw new Error("RPC HTTP " + r.status + ": " + t.slice(0, 160)); }
@@ -74,7 +74,9 @@ async function rpcAny(c, method, params, budget) {
     budget.used++;
     try { return await rpcCall(url, method, params); }
     catch (e) {
-      last = e; budget.last = String(e.message || e).slice(0, 120);
+      last = e; budget.last = (c.privRpc && url === c.rpcs[0] ? "vlastiti RPC: " : "") + String(e.message || e).slice(0, 120);
+      // Vlastiti RPC (npr. besplatni Alchemy) može imati manji dopušteni raspon od javnih čvorova, pa se tada pitaju javni.
+      if (c.privRpc && url === c.rpcs[0]) continue;
       if (method === "eth_getLogs" && RANGE_ERR.test(String(e.message)) && !/rate/i.test(String(e.message))) throw e;
     }
   }
@@ -117,10 +119,11 @@ async function radarChainRpc(c, shared, env) {
   if (c.issue) filters.push({ address: c.issue, topics: [ISSUE], issue: true });
   const mints = [];
   for (const f of filters) {
-    const logs = [];
-    for (let from = start.n; from <= head.n; from += c.chunk) {
-      await getLogsSplit(c, { address: f.address, topics: f.topics }, from, Math.min(head.n, from + c.chunk - 1), budget, logs);
-    }
+    // Dijelovi raspona traže se istovremeno, da spori čvor ne pojede cijeli rok od 20 s.
+    const parts = [];
+    for (let from = start.n; from <= head.n; from += c.chunk) parts.push([from, Math.min(head.n, from + c.chunk - 1)]);
+    const got = await Promise.all(parts.map(async ([a, b]) => { const o = []; await getLogsSplit(c, { address: f.address, topics: f.topics }, a, b, budget, o); return o; }));
+    const logs = got.flat();
     for (const lg of logs) {
       const tok = f.issue ? ["USDT", 6] : c.tokens[String(lg.address).toLowerCase()];
       if (!tok) continue;
@@ -196,10 +199,11 @@ async function memo(key, ttlMs, fn) {
 }
 
 // Rok za jednu mrežu, da jedan spori izvor ne zadrži cijeli odgovor.
-function withTimeout(p, ms) {
-  return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("Izvor nije odgovorio na vrijeme (" + ms / 1000 + " s)")), ms))]);
+function withTimeout(p, ms, budget) {
+  return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("Izvor nije odgovorio na vrijeme (" + ms / 1000 + " s)" + (budget && budget.last ? "; zadnja greška: " + budget.last : ""))), ms))]);
 }
 
+const LAST_GOOD = new Map();
 async function apiRadarEvm(env, only) {
   const out = { updated: new Date().toISOString(), window_s: RADAR_WINDOW_S, chains: {} };
   // Mreže se provjeravaju istovremeno, da odgovor ne čeka zbroj svih čekanja.
@@ -208,13 +212,20 @@ async function apiRadarEvm(env, only) {
     // S ključem BLOCKSCOUT_KEY koristi se Blockscout PRO API (pouzdan); bez njega javni RPC čvorovi,
     // koji Cloudflare Workere često ograniče jer dijele iste IP adrese.
     // Base u besplatnom Blockscout PRO planu nije dostupan, pa uvijek ide preko RPC-a. Ako prvi način ne uspije, pokuša se drugi.
+    // Rezerva za Base je javni Blockscout explorer bez ključa (PRO za Base vraća HTTP 402).
     const first = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChain(env, c) : () => radarChainRpc(c, shared, env);
-    const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared, env) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
-    try { out.chains[c.key] = await withTimeout(first(), 20000); }
+    const second = env.BLOCKSCOUT_KEY && !c.rpcFirst ? () => radarChainRpc(c, shared, env) : c.rpcFirst ? () => radarChain({}, c) : env.BLOCKSCOUT_KEY ? () => radarChain(env, c) : null;
+    try { out.chains[c.key] = await withTimeout(first(), 20000, shared); }
     catch (e) {
       try { if (!second) throw e; out.chains[c.key] = await withTimeout(second(), 15000); }
-      catch (e2) { out.chains[c.key] = { ok: false, err: String((e && e.message) || e).slice(0, 120) + (e2 !== e ? " | " + String((e2 && e2.message) || e2).slice(0, 80) : "") }; }
+      catch (e2) {
+        const err = String((e && e.message) || e).slice(0, 200) + (e2 !== e ? " | " + String((e2 && e2.message) || e2).slice(0, 100) : "");
+        // Ako je zadnja uspješna provjera novija od 15 minuta, vraća se ona, da kartica ne ostane prazna zbog jednog neuspjeha.
+        const good = LAST_GOOD.get(c.key);
+        out.chains[c.key] = good && Date.now() - good.at < 900000 ? { ...good.r, warnings: [...(good.r.warnings || []), "Zadnja provjera nije uspjela: " + err] } : { ok: false, err };
+      }
     }
+    if (out.chains[c.key].ok && !out.chains[c.key].warnings?.some((w) => /^Zadnja provjera/.test(w))) LAST_GOOD.set(c.key, { at: Date.now(), r: out.chains[c.key] });
   }));
   // Mintanja manja od 1.000 $ se ne šalju (najmanji prag na stranici je 1.000), da odgovor ostane malen.
   for (const v of Object.values(out.chains)) if (v.mints) v.mints = v.mints.filter((m) => m.amt >= 1000);
@@ -475,7 +486,12 @@ const API = {
     // ?chain=eth: samo jedna mreža. Stranica pita svaku mrežu posebnim zahtjevom, jer Cloudflare
     // dopušta najviše 50 vanjskih poziva po zahtjevu, a sve mreže zajedno znaju prijeći tu granicu.
     const only = RADAR_CHAINS.some((c) => c.key === url.searchParams.get("chain")) ? url.searchParams.get("chain") : "";
-    const d = await memo("radar-evm:" + only, 120000, () => apiRadarEvm(env, only));
+    const d = await memo("radar-evm:" + only, 120000, () => apiRadarEvm(env, only).then((r) => {
+      // Neuspješna provjera se ne pamti 2 minute, nego se sljedeći posjet nakon 20 s pokuša ponovno.
+      const hit = MEMO.get("radar-evm:" + only);
+      if (hit && Object.values(r.chains).some((v) => !v.ok || (v.warnings || []).some((w) => /^Zadnja provjera/.test(w)))) hit.at = Date.now() - 100000;
+      return r;
+    }));
     if (!url.searchParams.has("summary")) return d;
     // Kratki pregled stanja po mrežama (za provjeru bez cijelog popisa mintanja).
     const chains = {};
