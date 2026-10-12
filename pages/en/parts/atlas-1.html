@@ -219,7 +219,10 @@ th { background: var(--thead); }
 .bmap svg { width: 100%; height: auto; display: block; }
 .bmap .chain { stroke-width: 2; }
 .bmap .bub { stroke: var(--surface); stroke-width: 1; }
-.bmap .bub:hover { opacity: 0.85; }
+.bmap .bw { transition: transform .18s ease; cursor: zoom-in; }
+.bmap .bw .hl { opacity: 0; transition: opacity .18s ease; }
+.bmap .bw.on .hl { opacity: 1; }
+.bmap .bw.on .bub { stroke-width: 1.5; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
 .bmap text { pointer-events: none; }
 .bmap .cl { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
 .bmap .cv { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }

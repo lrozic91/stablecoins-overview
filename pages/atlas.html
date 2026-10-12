@@ -219,7 +219,10 @@ th { background: var(--thead); }
 .bmap svg { width: 100%; height: auto; display: block; }
 .bmap .chain { stroke-width: 2; }
 .bmap .bub { stroke: var(--surface); stroke-width: 1; }
-.bmap .bub:hover { opacity: 0.85; }
+.bmap .bw { transition: transform .18s ease; cursor: zoom-in; }
+.bmap .bw .hl { opacity: 0; transition: opacity .18s ease; }
+.bmap .bw.on .hl { opacity: 1; }
+.bmap .bw.on .bub { stroke-width: 1.5; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
 .bmap text { pointer-events: none; }
 .bmap .cl { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
 .bmap .cv { font-family: var(--f-data); font-size: 11px; fill: var(--muted); }
@@ -821,12 +824,30 @@ window.makePie = function (items, c1, c2) {
         var c = svgEl("circle", { cx: g.x + it.x, cy: g.y + it.y, r: it.r - 1, class: "bub" });
         c.style.fill = colorOf(it);
         c.appendChild(svgEl("title", {}, g.ch.name + " · " + it.name + (it.cat ? " (" + it.cat + ")" : "") + ": " + fmt(it.v) + " · " + Math.round(it.v / g.tot * 100) + " %"));
-        gg.appendChild(c);
+        var bx = g.x + it.x, by = g.y + it.y, bw = svgEl("g", { class: "bw" });
+        // Hover/tap zoom: small bubbles grow to a readable size, big ones just a little.
+        var T = 42 * fsc, sc = Math.max(1.15, T / it.r);
+        bw.style.transformOrigin = bx + "px " + by + "px";
+        bw.addEventListener("pointerenter", function () {
+          // Bring to front by moving later siblings behind it (moving the hovered node itself would cancel the hover).
+          while (gg.nextSibling) svg.insertBefore(gg.nextSibling, gg);
+          while (bw.nextSibling) gg.insertBefore(bw.nextSibling, bw);
+          bw.classList.add("on"); bw.style.transform = "scale(" + sc + ")";
+        });
+        bw.addEventListener("pointerleave", function () { bw.classList.remove("on"); bw.style.transform = ""; });
+        bw.appendChild(c); gg.appendChild(bw);
         var fs = labelFs(it, fsc);
+        if (!fs) {
+          var hf = Math.min(15 * fsc, Math.max(9 * fsc, T / 3.2));
+          if (it.name.length * hf * 0.6 > T * 1.8) hf = T * 1.8 / (it.name.length * 0.6);
+          hf /= sc;
+          bw.appendChild(svgEl("text", { x: bx, y: by - hf * 0.1, "text-anchor": "middle", class: "bl hl", style: "font-size:" + hf + "px" }, it.name));
+          bw.appendChild(svgEl("text", { x: bx, y: by + hf * 0.95, "text-anchor": "middle", class: "bv hl", style: "font-size:" + (hf * 0.75) + "px" }, fmtS(it.v)));
+        }
         if (fs) {
           var t = svgEl("text", { x: g.x + it.x, y: g.y + it.y + (it.r > 30 ? -2 : 3), "text-anchor": "middle", class: "bl" }, it.name);
-          t.style.fontSize = fs + "px"; gg.appendChild(t);
-          if (it.r > 30) { var tv = svgEl("text", { x: g.x + it.x, y: g.y + it.y + fs * 0.95, "text-anchor": "middle", class: "bv" }, fmtS(it.v)); tv.style.fontSize = (fs * 0.75) + "px"; gg.appendChild(tv); }
+          t.style.fontSize = fs + "px"; bw.appendChild(t);
+          if (it.r > 30) { var tv = svgEl("text", { x: g.x + it.x, y: g.y + it.y + fs * 0.95, "text-anchor": "middle", class: "bv" }, fmtS(it.v)); tv.style.fontSize = (fs * 0.75) + "px"; bw.appendChild(tv); }
         }
       });
       var ly = g.y + g.R + 16 * fsc;
